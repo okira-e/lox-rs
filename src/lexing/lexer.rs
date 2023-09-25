@@ -115,6 +115,8 @@ impl<'a> Lexer<'a> {
 
     /// add_token adds a new token to the tokens vector.
     fn add_token(&mut self, kind: TokenKind, literal: Option<String>) {
+        // The text of the token is the substring of the source code from the start index to the
+        // current index.
         let text = self.source[self.start..self.current].to_string();
         self.tokens.push(Token::new(kind, text, self.line, literal.unwrap_or("".into())));
     }
