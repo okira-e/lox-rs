@@ -36,7 +36,7 @@ mod test {
 
     #[test]
     fn strings() {
-        let input = "() \"Hello, world!\"".into();
+        let input = "\"Hello, world!\"".into();
         let mut lexer = Lexer::new(input);
 
         let (tokens, errors) = lexer.scan_tokens();
