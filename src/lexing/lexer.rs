@@ -5,8 +5,8 @@ use crate::lexing::token_kinds::TokenKind;
 pub struct Lexer<'a> {
     source: &'a str,
     tokens: Vec<Token>,
-    start: usize,
-    current: usize,
+    start_of_lexeme: usize,
+    current_char: usize,
     line: usize,
     errors: Vec<LexerError>,
 }
@@ -16,8 +16,8 @@ impl<'a> Lexer<'a> {
         return Lexer {
             source,
             tokens: Vec::new(),
-            start: 0,
-            current: 0,
+            start_of_lexeme: 0,
+            current_char: 0,
             line: 1,
             errors: Vec::new(),
         };
@@ -26,7 +26,7 @@ impl<'a> Lexer<'a> {
     /// scan_tokens scans the source code and returns a vector of tokens.
     pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<LexerError>) {
         while !self.is_at_end() {
-            self.start = self.current;
+            self.start_of_lexeme = self.current_char;
             self.scan_token();
         }
 
@@ -101,6 +101,35 @@ impl<'a> Lexer<'a> {
                     self.add_token(TokenKind::Slash, None);
                 }
             },
+            '"' => {
+                // As long as the next character isn't a double quote and we're not at the end
+                // of the source code, keep advancing.
+                while self.peek() != '"' && !self.is_at_end() {
+                    // If we encounter a newline, increment the line number.
+                    if self.peek() == '\n' {
+                        self.line += 1;
+                    }
+
+                    self.advance();
+                }
+
+                // If we're at the end of the source code before a closing '"', add an error.
+                if self.is_at_end() {
+                    self.errors.push(LexerError {
+                        line: self.line,
+                        message: "Unterminated string.".into(),
+                        hint: None,
+                    });
+                }
+
+                // Otherwise, we've found the closing '"', so we can add the string literal.
+                self.advance();
+
+                // The value of the string literal is the substring of the source code from the
+                // start index to the current index.
+                let value = self.source[self.start_of_lexeme + 1..self.current_char - 1].into();
+                self.add_token(TokenKind::String, Some(value));
+            },
             _ => {
                 self.errors.push(
                     LexerError {
@@ -117,7 +146,7 @@ impl<'a> Lexer<'a> {
     fn add_token(&mut self, kind: TokenKind, literal: Option<String>) {
         // The text of the token is the substring of the source code from the start index to the
         // current index.
-        let text = self.source[self.start..self.current].to_string();
+        let text = self.source[self.start_of_lexeme..self.current_char].to_string();
         self.tokens.push(Token::new(kind, text, self.line, literal.unwrap_or("".into())));
     }
 
@@ -129,19 +158,19 @@ impl<'a> Lexer<'a> {
             return false;
         }
 
-        if self.source.chars().nth(self.current).unwrap() != expected_next {
+        if self.source.chars().nth(self.current_char).unwrap() != expected_next {
             return false;
         }
 
-        self.current += 1;
+        self.current_char += 1;
         return true;
     }
 
     /// advance consumes the current character the parser's at and returns it.
     /// Then it increments the current index.
     fn advance(&mut self) -> char {
-        let char = self.source.chars().nth(self.current).unwrap();
-        self.current += 1;
+        let char = self.source.chars().nth(self.current_char).unwrap();
+        self.current_char += 1;
 
         return char;
     }
@@ -153,11 +182,11 @@ impl<'a> Lexer<'a> {
             return '\0';
         }
 
-        return self.source.chars().nth(self.current).unwrap();
+        return self.source.chars().nth(self.current_char).unwrap();
     }
 
     fn is_at_end(&self) -> bool {
-        return self.current >= self.source.len();
+        return self.current_char >= self.source.len();
     }
 }
 

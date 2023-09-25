@@ -25,6 +25,16 @@ mod test {
     }
 
     #[test]
+    fn strings() {
+        let input = "() \"Hello, world!\"".into();
+        let mut lexer = Lexer::new(input);
+
+        let (tokens, errors) = lexer.scan_tokens();
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(errors.len(), 0);
+    }
+
+    #[test]
     fn unexpected_token() {
         let input = "(*^)";
         let mut lexer = Lexer::new(input);
