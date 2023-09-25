@@ -29,15 +29,15 @@ mod test {
         assert_eq!(errors.len(), 1);
     }
 
-    // #[test]
-    // fn comments() {
-    //     let input = "() // This is a comment )";
-    //     let mut lexer = Lexer::new(input);
-    //
-    //     let (tokens, errors) = lexer.scan_tokens();
-    //     assert_eq!(tokens.len(), 3);
-    //     assert_eq!(errors.len(), 0);
-    // }
+    #[test]
+    fn comments() {
+        let input = "() // This is a comment )";
+        let mut lexer = Lexer::new(input);
+
+        let (tokens, errors) = lexer.scan_tokens();
+        assert_eq!(tokens.len(), 3);
+        assert_eq!(errors.len(), 0);
+    }
 
     #[test]
     fn multiple_errors() {
