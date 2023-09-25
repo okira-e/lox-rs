@@ -1,5 +1,4 @@
 mod lexing;
-mod lox;
 
 use std::io::Write;
 use std::{fs, io};
