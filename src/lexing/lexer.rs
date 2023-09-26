@@ -120,6 +120,8 @@ impl<'a> Lexer<'a> {
                         message: "Unterminated string.".into(),
                         hint: None,
                     });
+
+                    return;
                 }
 
                 // Otherwise, we've found the closing '"', so we can add the string literal.
