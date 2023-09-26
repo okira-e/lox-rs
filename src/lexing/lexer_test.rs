@@ -51,10 +51,6 @@ mod test {
 
         let (tokens, errors) = lexer.scan_tokens();
 
-        for token in tokens {
-            println!("{}", token.to_string());
-        }
-
         assert_eq!(tokens.len(), 4);
         assert_eq!(errors.len(), 1);
     }
