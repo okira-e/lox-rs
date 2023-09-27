@@ -160,7 +160,12 @@ impl<'a> Lexer<'a> {
             return false;
         }
 
-        if self.source.chars().nth(self.current_char).unwrap() != expected_next {
+        let next_char = self.source.chars().nth(self.current_char).unwrap_or_else(|| {
+            // This should never happen because we check if we're at the end of the source code
+            // before calling this function.
+            panic!("No character at index {}. Last read character was {}", self.current_char, self.source.chars().nth(self.current_char - 1).unwrap());
+        });
+        if next_char != expected_next {
             return false;
         }
 
@@ -171,7 +176,9 @@ impl<'a> Lexer<'a> {
     /// advance consumes the current character the parser's at and returns it.
     /// Then it increments the current index.
     fn advance(&mut self) -> char {
-        let char = self.source.chars().nth(self.current_char).unwrap();
+        let char = self.source.chars().nth(self.current_char).unwrap_or_else(|| {
+            panic!("No character at index {}. Last read character was {}", self.current_char, self.source.chars().nth(self.current_char - 1).unwrap());
+        });
         self.current_char += 1;
 
         return char;

@@ -9,7 +9,10 @@ fn main() {
 
     match args.len() {
         2 => {
-            run_file(args.get(1).unwrap());
+            run_file(args.get(1).unwrap_or_else(|| {
+                println!("Error reading source file");
+                std::process::exit(1);
+            }));
         }
         1 => {
             run_prompt();
@@ -30,16 +33,22 @@ pub fn run_file(file_name: &String) {
 pub fn run_prompt() {
     loop {
         print!("Lox> ");
-        io::stdout().flush().unwrap();
+        io::stdout().flush().unwrap_or_else(|err| {
+            println!("Error flushing stdout: {}", err);
+            std::process::exit(1);
+        });
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        io::stdin().read_line(&mut input).unwrap_or_else(|err| {
+            println!("Error reading stdin: {}", err);
+            std::process::exit(1);
+        });
 
         run(input.as_str());
     }
 }
 
-fn run<'a>(input: &'a str) {
+fn run(input: &str) {
     let mut lexer = Lexer::new(input);
     let (tokens, errors) = lexer.scan_tokens();
 
