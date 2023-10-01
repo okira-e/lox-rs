@@ -35,7 +35,7 @@ impl<'a> Lexer<'a> {
             kind: TokenKind::Eof,
             lexeme: "".into(),
             line: self.line,
-            literal: "".into(),
+            literal: None,
             literal_type: None,
         });
 
@@ -139,7 +139,7 @@ impl<'a> Lexer<'a> {
                 let value = self.source[self.start_of_lexeme + 1..self.current_char - 1].into();
                 self.add_token(TokenKind::String, Some(value), Some(LiteralTypes::String));
             }
-            _ => {
+            _ => { // Handle numbers and identifiers.
                 if current_char.is_numeric() {
                     // If it's a digit, scan and add a number token.
                     while self.peek().is_numeric() {
@@ -181,7 +181,7 @@ impl<'a> Lexer<'a> {
             kind,
             lexeme: text,
             line: self.line,
-            literal: literal.unwrap_or("".into()),
+            literal,
             literal_type,
         });
     }

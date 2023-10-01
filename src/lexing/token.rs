@@ -7,12 +7,12 @@ pub struct Token {
     pub kind: TokenKind,
     pub lexeme: String,
     pub line: usize,
-    pub literal: String,
+    pub literal: Option<String>,
     pub literal_type: Option<LiteralTypes>,
 }
 
 impl Token {
     pub fn to_string(&self) -> String {
-        return format!("{:?} {} {}", self.kind, self.lexeme, self.literal);
+        return format!("{:?} {} {}", self.kind.clone(), self.lexeme.clone(), self.literal.clone().unwrap_or("".into()));
     }
 }
