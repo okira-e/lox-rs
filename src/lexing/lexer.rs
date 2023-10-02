@@ -156,16 +156,44 @@ impl<'a> Lexer<'a> {
 
                     let value = self.source[self.start_of_lexeme..self.current_char].into();
                     self.add_token(TokenKind::Number, Some(value), Some(LiteralTypes::Number));
-                } else {
-                    self.errors.push(
-                        LexerError {
-                            line: self.line,
-                            message: format!("Unrecognized character \"{}\" at line {}.", current_char, self.line),
-                            hint: None,
-                        }
-                    );
+                } else if current_char.is_alphabetic() {
+                    // Identify if the typed keyword is reserved or an identifier.
+
+                    while self.peek() != '\n' && self.peek() != ' ' && !self.is_at_end() {
+                        self.advance();
+                    }
+
+                    let value: &str = self.source[self.start_of_lexeme..self.current_char].into();
+
+                    let kind = self.match_keyword(value);
+
+                    self.add_token(kind, None, None);
                 }
             }
+        }
+    }
+
+    /// match_keyword checks if the given word is a keyword.
+    /// If it is, it returns the corresponding token kind, otherwise it returns the identifier
+    fn match_keyword(&self, word: &str) -> TokenKind {
+        match word {
+            "and" => TokenKind::And,
+            "class" => TokenKind::Class,
+            "else" => TokenKind::Else,
+            "false" => TokenKind::False,
+            "for" => TokenKind::For,
+            "fun" => TokenKind::Fun,
+            "if" => TokenKind::If,
+            "nil" => TokenKind::Nil,
+            "or" => TokenKind::Or,
+            "print" => TokenKind::Print,
+            "return" => TokenKind::Return,
+            "super" => TokenKind::Super,
+            "self" => TokenKind::Self_,
+            "true" => TokenKind::True,
+            "var" => TokenKind::Var,
+            "while" => TokenKind::While,
+            _ => TokenKind::Identifier,
         }
     }
 
@@ -240,6 +268,20 @@ impl<'a> Lexer<'a> {
     fn is_at_end(&self) -> bool {
         return self.current_char >= self.source.len();
     }
+
+    // fn add_error(&mut self, value: &str, hint: Option<String>) {
+    //     self.errors.push(
+    //         LexerError {
+    //             line: self.line,
+    //             message: format!("Unrecognized {} \"{}\" at line {}.", if value.len() == 1 {
+    //                 "character"
+    //             } else {
+    //                 "identifier"
+    //             }, value, self.line),
+    //             hint,
+    //         }
+    //     );
+    // }
 }
 
 #[derive(Debug)]
