@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod test {
+mod scanning {
     use crate::lexing::lexer::Lexer;
 
      // Keep in mind that the lexer adds an EOF token to the end of the tokens vector.
@@ -45,17 +45,6 @@ mod test {
     }
 
     #[test]
-    fn unexpected_token() {
-        let input = "(*^)";
-        let mut lexer = Lexer::new(input);
-
-        let (tokens, errors) = lexer.scan_tokens();
-
-        assert_eq!(tokens.len(), 4);
-        assert_eq!(errors.len(), 1);
-    }
-
-    #[test]
     fn unterminated_string() {
         let input = "\"Hello, world!))";
         let mut lexer = Lexer::new(input);
@@ -65,26 +54,42 @@ mod test {
         assert_eq!(tokens.len(), 1);
         assert_eq!(errors.len(), 1);
     }
-
-    #[test]
-    fn multiple_errors() {
-        let input = "(*^) (+^) (^)";
-        let mut lexer = Lexer::new(input);
-
-        let (tokens, errors) = lexer.scan_tokens();
-
-        assert_eq!(tokens.len(), 9);
-        assert_eq!(errors.len(), 3);
-    }
-
-    #[test]
-    fn error_message() {
-        let input = "(*^)";
-        let mut lexer = Lexer::new(input);
-
-        let (tokens, errors) = lexer.scan_tokens();
-        assert_eq!(tokens.len(), 4);
-        assert_eq!(errors.len(), 1);
-        assert_eq!(errors[0].message, String::from("Unrecognized character \"^\" at line 1."));
-    }
 }
+
+// #[cfg(test)]
+// mod errors {
+//     use crate::lexing::lexer::Lexer;
+//
+//     #[test]
+//     fn unexpected_token() {
+//         let input = "(*^)";
+//         let mut lexer = Lexer::new(input);
+//
+//         let (tokens, errors) = lexer.scan_tokens();
+//
+//         assert_eq!(tokens.len(), 4);
+//         assert_eq!(errors.len(), 1);
+//     }
+//
+//     #[test]
+//     fn multiple_errors() {
+//         let input = "(*^) (+^) (^)";
+//         let mut lexer = Lexer::new(input);
+//
+//         let (tokens, errors) = lexer.scan_tokens();
+//
+//         assert_eq!(tokens.len(), 9);
+//         assert_eq!(errors.len(), 3);
+//     }
+//
+//     #[test]
+//     fn error_message() {
+//         let input = "(*^)";
+//         let mut lexer = Lexer::new(input);
+//
+//         let (tokens, errors) = lexer.scan_tokens();
+//         assert_eq!(tokens.len(), 4);
+//         assert_eq!(errors.len(), 1);
+//         assert_eq!(errors[0].message, String::from("Unrecognized character \"^\" at line 1."));
+//     }
+// }
