@@ -1,5 +1,5 @@
-use crate::lexing::token_kinds::TokenKind;
-use crate::lexing::literal_types::LiteralKinds;
+use crate::token_kinds::TokenKind;
+use crate::literal_types::LiteralKinds;
 
 /// Token is a struct that represents a token in a source file.
 #[derive(Debug, Clone)]

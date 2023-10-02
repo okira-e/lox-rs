@@ -1,8 +1,14 @@
-mod lexing;
+mod token;
+mod token_kinds;
+mod tokenizer;
+
+mod tokenizer_test;
+
+mod literal_types;
 
 use std::io::Write;
 use std::{fs, io};
-use crate::lexing::lexer::{Lexer};
+use tokenizer::{Tokenizer};
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
@@ -49,8 +55,8 @@ pub fn run_prompt() {
 }
 
 fn run(input: &str) {
-    let mut lexer = Lexer::new(input);
-    let (tokens, errors) = lexer.scan_tokens();
+    let mut tokenizer = Tokenizer::new(input);
+    let (tokens, errors) = tokenizer.scan_tokens();
 
     if !errors.is_empty() {
         for error in errors {

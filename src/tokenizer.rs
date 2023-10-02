@@ -1,20 +1,20 @@
-use crate::lexing::literal_types::LiteralKinds;
-use crate::lexing::token::Token;
-use crate::lexing::token_kinds::TokenKind;
+use crate::literal_types::LiteralKinds;
+use crate::token::Token;
+use crate::token_kinds::TokenKind;
 
-/// Lexer is responsible for scanning the source code and returning a vector of tokens and errors.
-pub struct Lexer<'a> {
+/// Tokenizer is responsible for scanning the source code and returning a vector of tokens and errors.
+pub struct Tokenizer<'a> {
     source: &'a str,
     tokens: Vec<Token::<'a>>,
     start_of_lexeme: usize,
     current_char: usize,
     line: usize,
-    errors: Vec<LexerError>,
+    errors: Vec<TokenizerError>,
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(source: &'a str) -> Lexer {
-        return Lexer {
+impl<'a> Tokenizer<'a> {
+    pub fn new(source: &'a str) -> Tokenizer {
+        return Tokenizer {
             source,
             tokens: Vec::new(),
             start_of_lexeme: 0,
@@ -25,7 +25,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// scan_tokens scans the source code and returns a vector of tokens.
-    pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<LexerError>) {
+    pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<TokenizerError>) {
         while !self.is_at_end() {
             self.start_of_lexeme = self.current_char;
             self.scan_token();
@@ -121,7 +121,7 @@ impl<'a> Lexer<'a> {
 
                 // If we're at the end of the source code before a closing '"', add an error.
                 if self.is_at_end() {
-                    self.errors.push(LexerError {
+                    self.errors.push(TokenizerError {
                         line: self.line,
                         message: "Unterminated string.".into(),
                         hint: None,
@@ -154,7 +154,7 @@ impl<'a> Lexer<'a> {
                     }
 
                     let value = self.source[self.start_of_lexeme..self.current_char].parse::<f64>().unwrap_or_else(|err| {
-                        self.errors.push(LexerError {
+                        self.errors.push(TokenizerError {
                             line: self.line,
                             message: format!("Error parsing number: {}", err),
                             hint: None,
@@ -278,7 +278,7 @@ impl<'a> Lexer<'a> {
 
     // fn add_error(&mut self, value: &str, hint: Option<String>) {
     //     self.errors.push(
-    //         LexerError {
+    //         TokenizerError {
     //             line: self.line,
     //             message: format!("Unrecognized {} \"{}\" at line {}.", if value.len() == 1 {
     //                 "character"
@@ -292,7 +292,7 @@ impl<'a> Lexer<'a> {
 }
 
 #[derive(Debug)]
-pub struct LexerError {
+pub struct TokenizerError {
     pub line: usize,
     pub message: String,
     pub hint: Option<String>,
