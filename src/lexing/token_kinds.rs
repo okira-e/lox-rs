@@ -16,7 +16,7 @@ pub enum TokenKind {
 
     // Keywords.
     And, Class, Else, False, Fun, For, If, Nil, Or,
-    Print, Return, Super, This, True, Var, While,
+    Print, Return, Super, Self_, True, Var, While,
 
     Error, Eof
 }
