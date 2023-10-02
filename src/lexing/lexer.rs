@@ -1,11 +1,11 @@
-use crate::lexing::literal_types::LiteralTypes;
+use crate::lexing::literal_types::LiteralKinds;
 use crate::lexing::token::Token;
 use crate::lexing::token_kinds::TokenKind;
 
 /// Lexer is responsible for scanning the source code and returning a vector of tokens and errors.
 pub struct Lexer<'a> {
     source: &'a str,
-    tokens: Vec<Token>,
+    tokens: Vec<Token::<'a>>,
     start_of_lexeme: usize,
     current_char: usize,
     line: usize,
@@ -36,7 +36,6 @@ impl<'a> Lexer<'a> {
             lexeme: "".into(),
             line: self.line,
             literal: None,
-            literal_type: None,
         });
 
         return (&self.tokens, &self.errors);
@@ -50,16 +49,16 @@ impl<'a> Lexer<'a> {
         match current_char {
             '\n' => self.line += 1,
             ' ' | '\r' | '\t' => (),
-            '(' => self.add_token(TokenKind::LeftParen, None, None),
-            ')' => self.add_token(TokenKind::RightParen, None, None),
-            '{' => self.add_token(TokenKind::LeftBrace, None, None),
-            '}' => self.add_token(TokenKind::RightBrace, None, None),
-            ',' => self.add_token(TokenKind::Comma, None, None),
-            '.' => self.add_token(TokenKind::Dot, None, None),
-            '-' => self.add_token(TokenKind::Minus, None, None),
-            '+' => self.add_token(TokenKind::Plus, None, None),
-            ';' => self.add_token(TokenKind::Semicolon, None, None),
-            '*' => self.add_token(TokenKind::Star, None, None),
+            '(' => self.add_token(TokenKind::LeftParen, None),
+            ')' => self.add_token(TokenKind::RightParen, None),
+            '{' => self.add_token(TokenKind::LeftBrace, None),
+            '}' => self.add_token(TokenKind::RightBrace, None),
+            ',' => self.add_token(TokenKind::Comma, None),
+            '.' => self.add_token(TokenKind::Dot, None),
+            '-' => self.add_token(TokenKind::Minus, None),
+            '+' => self.add_token(TokenKind::Plus, None),
+            ';' => self.add_token(TokenKind::Semicolon, None),
+            '*' => self.add_token(TokenKind::Star, None),
             '!' => {
                 // Check for the next character to see if it's a bang equal.
                 // If it is, add a bang equal token & increment `current` to skip it, otherwise
@@ -70,7 +69,7 @@ impl<'a> Lexer<'a> {
                     TokenKind::Bang
                 };
 
-                self.add_token(kind, None, None);
+                self.add_token(kind, None);
             }
             '=' => {
                 let kind = if self.match_char('=') {
@@ -79,7 +78,7 @@ impl<'a> Lexer<'a> {
                     TokenKind::Equal
                 };
 
-                self.add_token(kind, None, None);
+                self.add_token(kind, None);
             }
             '<' => {
                 let kind = if self.match_char('=') {
@@ -88,7 +87,7 @@ impl<'a> Lexer<'a> {
                     TokenKind::Less
                 };
 
-                self.add_token(kind, None, None);
+                self.add_token(kind, None);
             }
             '>' => {
                 let kind = if self.match_char('=') {
@@ -97,7 +96,7 @@ impl<'a> Lexer<'a> {
                     TokenKind::Greater
                 };
 
-                self.add_token(kind, None, None);
+                self.add_token(kind, None);
             }
             '/' => {
                 if self.match_char('/') {
@@ -105,7 +104,7 @@ impl<'a> Lexer<'a> {
                         self.advance();
                     }
                 } else {
-                    self.add_token(TokenKind::Slash, None, None);
+                    self.add_token(TokenKind::Slash, None);
                 }
             }
             '"' => {
@@ -137,7 +136,7 @@ impl<'a> Lexer<'a> {
                 // The value of the string literal is the substring of the source code from the
                 // start index to the current index.
                 let value = self.source[self.start_of_lexeme + 1..self.current_char - 1].into();
-                self.add_token(TokenKind::String, Some(value), Some(LiteralTypes::String));
+                self.add_token(TokenKind::String, Some(LiteralKinds::String(value)));
             }
             _ => { // Handle numbers and identifiers.
                 if current_char.is_numeric() {
@@ -154,8 +153,17 @@ impl<'a> Lexer<'a> {
                         }
                     }
 
-                    let value = self.source[self.start_of_lexeme..self.current_char].into();
-                    self.add_token(TokenKind::Number, Some(value), Some(LiteralTypes::Number));
+                    let value = self.source[self.start_of_lexeme..self.current_char].parse::<f64>().unwrap_or_else(|err| {
+                        self.errors.push(LexerError {
+                            line: self.line,
+                            message: format!("Error parsing number: {}", err),
+                            hint: None,
+                        });
+
+                        return 0f64;
+                    });
+
+                    self.add_token(TokenKind::Number, Some(LiteralKinds::Number(value)));
                 } else if current_char.is_alphabetic() {
                     // Identify if the typed keyword is reserved or an identifier.
 
@@ -167,7 +175,7 @@ impl<'a> Lexer<'a> {
 
                     let kind = self.match_keyword(value);
 
-                    self.add_token(kind, None, None);
+                    self.add_token(kind, None);
                 }
             }
         }
@@ -201,7 +209,7 @@ impl<'a> Lexer<'a> {
     /// literal is an optional string that represents the literal value of the token. It can be
     /// None if the token doesn't have a literal value. Or it can be a string for string literals
     /// and number literals.
-    fn add_token(&mut self, kind: TokenKind, literal: Option<String>, literal_type: Option<LiteralTypes>) {
+    fn add_token(&mut self, kind: TokenKind, literal: Option<LiteralKinds<'a>>) {
         // The text of the token is the substring of the source code from the start index to the
         // current index.
         let text = self.source[self.start_of_lexeme..self.current_char].to_string();
@@ -210,7 +218,6 @@ impl<'a> Lexer<'a> {
             lexeme: text,
             line: self.line,
             literal,
-            literal_type,
         });
     }
 

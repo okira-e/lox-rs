@@ -1,18 +1,17 @@
 use crate::lexing::token_kinds::TokenKind;
-use crate::lexing::literal_types::LiteralTypes;
+use crate::lexing::literal_types::LiteralKinds;
 
 /// Token is a struct that represents a token in a source file.
 #[derive(Debug, Clone)]
-pub struct Token {
+pub struct Token<'a> {
     pub kind: TokenKind,
     pub lexeme: String,
     pub line: usize,
-    pub literal: Option<String>,
-    pub literal_type: Option<LiteralTypes>,
+    pub literal: Option<LiteralKinds::<'a>>,
 }
 
-impl Token {
+impl<'a> Token<'a> {
     pub fn to_string(&self) -> String {
-        return format!("{:?} {} {}", self.kind.clone(), self.lexeme.clone(), self.literal.clone().unwrap_or("".into()));
+        return format!("{}, type: {:?}, literal: {}", &self.lexeme, &self.kind, self.literal.as_ref().unwrap_or(&LiteralKinds::Nil).to_string());
     }
 }
