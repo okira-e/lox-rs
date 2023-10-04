@@ -5,7 +5,7 @@ use crate::literal_types::LiteralKinds;
 #[derive(Debug, Clone)]
 pub struct Token<'a> {
     pub kind: TokenKind,
-    pub lexeme: String,
+    pub lexeme: &'a str,
     pub line: usize,
     pub literal: Option<LiteralKinds::<'a>>,
 }

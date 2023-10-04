@@ -212,7 +212,7 @@ impl<'a> Tokenizer<'a> {
     fn add_token(&mut self, kind: TokenKind, literal: Option<LiteralKinds<'a>>) {
         // The text of the token is the substring of the source code from the start index to the
         // current index.
-        let text = self.source[self.start_of_lexeme..self.current_char].to_string();
+        let text = &self.source[self.start_of_lexeme..self.current_char];
         self.tokens.push(Token {
             kind,
             lexeme: text,
