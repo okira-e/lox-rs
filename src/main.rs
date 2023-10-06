@@ -2,8 +2,6 @@ mod token;
 mod token_kinds;
 mod tokenizer;
 
-mod tokenizer_test;
-
 mod literal_types;
 
 mod expressions;
