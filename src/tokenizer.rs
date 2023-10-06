@@ -1,4 +1,4 @@
-use crate::literal_types::LiteralKinds;
+use crate::literal_types::Literal;
 use crate::token::Token;
 use crate::token_kinds::TokenKind;
 
@@ -136,7 +136,7 @@ impl<'a> Tokenizer<'a> {
                 // The value of the string literal is the substring of the source code from the
                 // start index to the current index.
                 let value = self.source[self.start_of_lexeme + 1..self.current_char - 1].into();
-                self.add_token(TokenKind::String, Some(LiteralKinds::String(value)));
+                self.add_token(TokenKind::String, Some(Literal::String(value)));
             }
             _ => { // Handle numbers and identifiers.
                 if current_char.is_numeric() {
@@ -163,7 +163,7 @@ impl<'a> Tokenizer<'a> {
                         return 0f64;
                     });
 
-                    self.add_token(TokenKind::Number, Some(LiteralKinds::Number(value)));
+                    self.add_token(TokenKind::Number, Some(Literal::Number(value)));
                 } else if current_char.is_alphabetic() {
                     // Identify if the typed keyword is reserved or an identifier.
 
@@ -209,7 +209,7 @@ impl<'a> Tokenizer<'a> {
     /// literal is an optional string that represents the literal value of the token. It can be
     /// None if the token doesn't have a literal value. Or it can be a string for string literals
     /// and number literals.
-    fn add_token(&mut self, kind: TokenKind, literal: Option<LiteralKinds<'a>>) {
+    fn add_token(&mut self, kind: TokenKind, literal: Option<Literal<'a>>) {
         // The text of the token is the substring of the source code from the start index to the
         // current index.
         let text = &self.source[self.start_of_lexeme..self.current_char];
