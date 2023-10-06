@@ -6,6 +6,10 @@ mod tokenizer_test;
 
 mod literal_types;
 
+mod expressions;
+
+mod ast_printer;
+
 use std::io::Write;
 use std::{fs, io};
 use tokenizer::{Tokenizer};
