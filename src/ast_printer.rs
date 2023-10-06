@@ -17,8 +17,6 @@ use crate::expressions::{
 };
 
 /// A struct that implements the ExprVisitor trait. To print the AST.
-///
-/// It is a visitor because it visits each node in the AST.
 struct AstPrinter<'a> {
     _phantom: std::marker::PhantomData<&'a str>,
 }
