@@ -38,7 +38,7 @@ impl<'a> AstPrinter<'a> {
 
     /// Helper function to wrap an expression in parentheses.
     /// It takes a name and a slice of expressions and wraps them all up in parentheses.
-    /// # Abstract Example
+    /// ## Abstract Example
     /// ```
     /// paranthesize("+", &[LiteralExpression::new(1), LiteralExpression::new(2)])
     /// ```

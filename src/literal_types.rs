@@ -1,5 +1,5 @@
 #[derive(Debug, Clone)]
-/// LiteralTypes is an enum that represents the type of a literal. It's used to determine how to
+/// An enum that represents the type of a literal. It's used to determine how to
 /// parse the literal.
 pub enum Literal<'a> {
     Number(f64),
