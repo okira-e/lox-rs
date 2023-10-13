@@ -30,7 +30,7 @@ impl<'a> AstPrinter<'a> {
     }
 
     /// Helper function to print an expression.
-    fn print(&self, expr: &'a dyn Expr<String>) -> Result<String, String> {
+    fn print(&self, expr: &'a dyn Expr<String>) -> Result<String, &'static str> {
         // `self` here is the visitor of type AstPrinter
         // and `expr` is the expression to print.
         return expr.accept(self);
@@ -46,7 +46,7 @@ impl<'a> AstPrinter<'a> {
     /// ```
     /// "(+ 1 2)"
     /// ```
-    fn paranthesize(&self, name: String, exprs: &'a [&dyn Expr::<String>]) -> Result<String, String> {
+    fn paranthesize(&self, name: String, exprs: &'a [&dyn Expr::<String>]) -> Result<String, &'static str> {
         let mut expr_str: String = "(".into();
         expr_str += name.as_str();
 
@@ -61,54 +61,54 @@ impl<'a> AstPrinter<'a> {
 }
 
 impl<'a> ExprVisitor<'a, String> for AstPrinter<'a> {
-    fn visit_assign_expr(&self, expr: &AssignExpression<String>) -> Result<String, String> {
+    fn visit_assign_expr(&self, expr: &AssignExpression<String>) -> Result<String, &'static str> {
         return Ok("AssignExpression".into());
     }
 
-    fn visit_binary_expr(&self, expr: &BinaryExpression<String>) -> Result<String, String> {
+    fn visit_binary_expr(&self, expr: &BinaryExpression<String>) -> Result<String, &'static str> {
         return self.paranthesize(expr.operator.lexeme.clone(), &[expr.left.as_ref(), expr.right.as_ref()]);
     }
 
-    fn visit_call_expr(&self, expr: &CallExpression<String>) -> Result<String, String> {
+    fn visit_call_expr(&self, expr: &CallExpression<String>) -> Result<String, &'static str> {
         return Ok("CallExpression".into());
     }
 
-    fn visit_get_expr(&self, expr: &GetExpression<String>) -> Result<String, String> {
+    fn visit_get_expr(&self, expr: &GetExpression<String>) -> Result<String, &'static str> {
         return Ok("GetExpression".into());
     }
 
-    fn visit_grouping_expr(&self, expr: &GroupingExpression<String>) -> Result<String, String> {
+    fn visit_grouping_expr(&self, expr: &GroupingExpression<String>) -> Result<String, &'static str> {
         return self.paranthesize("group".into(), &[expr.expression.as_ref()]);
     }
 
-    fn visit_literal_expr(&self, expr: &LiteralExpression) -> Result<String, String> {
+    fn visit_literal_expr(&self, expr: &LiteralExpression) -> Result<String, &'static str> {
         return match &expr.value {
             Some(value) => Ok(value.to_string().into()),
             None => Ok("nil".into()),
         };
     }
 
-    fn visit_logical_expr(&self, expr: &LogicalExpression<String>) -> Result<String, String> {
+    fn visit_logical_expr(&self, expr: &LogicalExpression<String>) -> Result<String, &'static str> {
         return Ok("LogicalExpression".into());
     }
 
-    fn visit_set_expr(&self, expr: &SetExpression<String>) -> Result<String, String> {
+    fn visit_set_expr(&self, expr: &SetExpression<String>) -> Result<String, &'static str> {
         return Ok("SetExpression".into());
     }
 
-    fn visit_super_expr(&self, expr: &SuperExpression) -> Result<String, String> {
+    fn visit_super_expr(&self, expr: &SuperExpression) -> Result<String, &'static str> {
         return Ok("SuperExpression".into());
     }
 
-    fn visit_self_expr(&self, expr: &SelfExpression) -> Result<String, String> {
+    fn visit_self_expr(&self, expr: &SelfExpression) -> Result<String, &'static str> {
         return Ok("SelfExpression".into());
     }
 
-    fn visit_unary_expr(&self, expr: &UnaryExpression<String>) -> Result<String, String> {
+    fn visit_unary_expr(&self, expr: &UnaryExpression<String>) -> Result<String, &'static str> {
         return self.paranthesize(expr.operator.lexeme.clone(), &[expr.right.as_ref()]);
     }
 
-    fn visit_variable_expr(&self, expr: &VariableExpression) -> Result<String, String> {
+    fn visit_variable_expr(&self, expr: &VariableExpression) -> Result<String, &'static str> {
         return Ok("VariableExpression".into());
     }
 }

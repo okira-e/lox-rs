@@ -3,27 +3,27 @@ use crate::literal_types::Literal;
 use crate::token::Token;
 
 pub trait ExprVisitor<'a, R: Display> {
-    fn visit_assign_expr(&self, expr: &AssignExpression::<R>) -> Result<R, String>;
-    fn visit_binary_expr(&self, expr: &BinaryExpression::<R>) -> Result<R, String>;
-    fn visit_call_expr(&self, expr: &CallExpression::<R>) -> Result<R, String>;
-    fn visit_get_expr(&self, expr: &GetExpression::<R>) -> Result<R, String>;
-    fn visit_grouping_expr(&self, expr: &GroupingExpression::<R>) -> Result<R, String>;
-    fn visit_literal_expr(&self, expr: &LiteralExpression) -> Result<R, String>;
-    fn visit_logical_expr(&self, expr: &LogicalExpression::<R>) -> Result<R, String>;
-    fn visit_set_expr(&self, expr: &SetExpression::<R>) -> Result<R, String>;
-    fn visit_super_expr(&self, expr: &SuperExpression) -> Result<R, String>;
-    fn visit_self_expr(&self, expr: &SelfExpression) -> Result<R, String>;
-    fn visit_unary_expr(&self, expr: &UnaryExpression::<R>) -> Result<R, String>;
-    fn visit_variable_expr(&self, expr: &VariableExpression) -> Result<R, String>;
+    fn visit_assign_expr(&self, expr: &AssignExpression::<R>) -> Result<R, &'static str>;
+    fn visit_binary_expr(&self, expr: &BinaryExpression::<R>) -> Result<R, &'static str>;
+    fn visit_call_expr(&self, expr: &CallExpression::<R>) -> Result<R, &'static str>;
+    fn visit_get_expr(&self, expr: &GetExpression::<R>) -> Result<R, &'static str>;
+    fn visit_grouping_expr(&self, expr: &GroupingExpression::<R>) -> Result<R, &'static str>;
+    fn visit_literal_expr(&self, expr: &LiteralExpression) -> Result<R, &'static str>;
+    fn visit_logical_expr(&self, expr: &LogicalExpression::<R>) -> Result<R, &'static str>;
+    fn visit_set_expr(&self, expr: &SetExpression::<R>) -> Result<R, &'static str>;
+    fn visit_super_expr(&self, expr: &SuperExpression) -> Result<R, &'static str>;
+    fn visit_self_expr(&self, expr: &SelfExpression) -> Result<R, &'static str>;
+    fn visit_unary_expr(&self, expr: &UnaryExpression::<R>) -> Result<R, &'static str>;
+    fn visit_variable_expr(&self, expr: &VariableExpression) -> Result<R, &'static str>;
 }
 
 /// A trait that represents an expression in the AST.
 /// 'a is the lifetime of the expression.
 pub trait Expr<R: Display> {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String>;
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str>;
 }
 
-impl Display for dyn Expr<String> {
+impl Display for dyn Expr<&'static str> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         return write!(f, "{}", self);
     }
@@ -40,7 +40,7 @@ pub struct AssignExpression<R> {
 }
 
 impl<'a, R: Display> Expr<R> for AssignExpression<R> {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_assign_expr(self);
     }
 }
@@ -57,7 +57,7 @@ pub struct BinaryExpression<R> {
 }
 
 impl<'a, R: Display> Expr<R> for BinaryExpression<R> {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_binary_expr(self);
     }
 }
@@ -74,7 +74,7 @@ pub struct CallExpression<R> {
 }
 
 impl<'a, R: Display> Expr<R> for CallExpression<R> {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_call_expr(self);
     }
 }
@@ -90,7 +90,7 @@ pub struct GetExpression<R> {
 }
 
 impl<'a, R: Display> Expr<R> for GetExpression<R> {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_get_expr(self);
     }
 }
@@ -105,7 +105,7 @@ pub struct GroupingExpression<R> {
 }
 
 impl<'a, R: Display> Expr<R> for GroupingExpression<R> {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_grouping_expr(self);
     }
 }
@@ -120,7 +120,7 @@ pub struct LiteralExpression {
 }
 
 impl<'a, R: Display> Expr<R> for LiteralExpression {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_literal_expr(self);
     }
 }
@@ -137,7 +137,7 @@ pub struct LogicalExpression<R> {
 }
 
 impl<'a, R: Display> Expr<R> for LogicalExpression<R> {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_logical_expr(self);
     }
 }
@@ -154,7 +154,7 @@ pub struct SetExpression<R> {
 }
 
 impl<'a, R: Display> Expr<R> for SetExpression<R> {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_set_expr(self);
     }
 }
@@ -170,7 +170,7 @@ pub struct SuperExpression {
 }
 
 impl<'a, R: Display> Expr<R> for SuperExpression {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_super_expr(self);
     }
 }
@@ -181,7 +181,7 @@ pub struct SelfExpression {
 }
 
 impl<'a, R: Display> Expr<R> for SelfExpression {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_self_expr(self);
     }
 }
@@ -197,7 +197,7 @@ pub struct UnaryExpression<R> {
 }
 
 impl<'a, R: Display> Expr<R> for UnaryExpression<R> {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_unary_expr(self);
     }
 }
@@ -213,7 +213,7 @@ pub struct VariableExpression {
 }
 
 impl<'a, R: Display> Expr<R> for VariableExpression {
-    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, String> {
+    fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_variable_expr(self);
     }
 }
