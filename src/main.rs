@@ -74,7 +74,6 @@ fn run(input: &str) {
 
     for token in tokens {
         println!("{}", token.to_string());
-        std::process::exit(0);
     }
 
     // let mut parser = Parser::new(tokens);
