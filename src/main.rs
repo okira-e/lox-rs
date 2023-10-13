@@ -8,9 +8,12 @@ mod expressions;
 
 mod ast_printer;
 
+mod parser;
+
 use std::io::Write;
 use std::{fs, io};
 use tokenizer::{Tokenizer};
+use crate::parser::Parser;
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
@@ -71,5 +74,8 @@ fn run(input: &str) {
 
     for token in tokens {
         println!("{}", token.to_string());
+        std::process::exit(0);
     }
+
+    // let mut parser = Parser::new(tokens);
 }

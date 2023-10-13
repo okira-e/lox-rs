@@ -30,7 +30,7 @@ impl<'a> AstPrinter<'a> {
     }
 
     /// Helper function to print an expression.
-    fn print(&self, expr: &'a dyn Expr<&str>) -> Result<String, &'static str> {
+    fn print(&self, expr: &'a dyn Expr<String>) -> Result<String, String> {
         // `self` here is the visitor of type AstPrinter
         // and `expr` is the expression to print.
         return expr.accept(self);
@@ -46,9 +46,9 @@ impl<'a> AstPrinter<'a> {
     /// ```
     /// "(+ 1 2)"
     /// ```
-    fn paranthesize<R: Display>(&self, name: &str, exprs: &'a [&dyn Expr::<R>]) -> Result<String, &'static str> {
+    fn paranthesize(&self, name: String, exprs: &'a [&dyn Expr::<String>]) -> Result<String, String> {
         let mut expr_str: String = "(".into();
-        expr_str += name;
+        expr_str += name.as_str();
 
         for expr in exprs {
             expr_str += " ";
@@ -60,55 +60,55 @@ impl<'a> AstPrinter<'a> {
     }
 }
 
-impl<'a, R: Display> ExprVisitor<'a, R> for AstPrinter<'a> {
-    fn visit_assign_expr(&self, expr: &AssignExpression<R>) -> Result<String, &'static str> {
+impl<'a> ExprVisitor<'a, String> for AstPrinter<'a> {
+    fn visit_assign_expr(&self, expr: &AssignExpression<String>) -> Result<String, String> {
         return Ok("AssignExpression".into());
     }
 
-    fn visit_binary_expr(&self, expr: &BinaryExpression<R>) -> Result<String, &'static str> {
-        return self.paranthesize(expr.operator.lexeme, &[expr.left.as_ref(), expr.right.as_ref()]);
+    fn visit_binary_expr(&self, expr: &BinaryExpression<String>) -> Result<String, String> {
+        return self.paranthesize(expr.operator.lexeme.clone(), &[expr.left.as_ref(), expr.right.as_ref()]);
     }
 
-    fn visit_call_expr(&self, expr: &CallExpression<R>) -> Result<String, &'static str> {
+    fn visit_call_expr(&self, expr: &CallExpression<String>) -> Result<String, String> {
         return Ok("CallExpression".into());
     }
 
-    fn visit_get_expr(&self, expr: &GetExpression<R>) -> Result<String, &'static str> {
+    fn visit_get_expr(&self, expr: &GetExpression<String>) -> Result<String, String> {
         return Ok("GetExpression".into());
     }
 
-    fn visit_grouping_expr(&self, expr: &GroupingExpression<R>) -> Result<String, &'static str> {
-        return self.paranthesize("group", &[expr.expression.as_ref()]);
+    fn visit_grouping_expr(&self, expr: &GroupingExpression<String>) -> Result<String, String> {
+        return self.paranthesize("group".into(), &[expr.expression.as_ref()]);
     }
 
-    fn visit_literal_expr(&self, expr: &LiteralExpression) -> Result<String, &'static str> {
+    fn visit_literal_expr(&self, expr: &LiteralExpression) -> Result<String, String> {
         return match &expr.value {
             Some(value) => Ok(value.to_string().into()),
             None => Ok("nil".into()),
         };
     }
 
-    fn visit_logical_expr(&self, expr: &LogicalExpression<R>) -> Result<String, &'static str> {
+    fn visit_logical_expr(&self, expr: &LogicalExpression<String>) -> Result<String, String> {
         return Ok("LogicalExpression".into());
     }
 
-    fn visit_set_expr(&self, expr: &SetExpression<R>) -> Result<String, &'static str> {
+    fn visit_set_expr(&self, expr: &SetExpression<String>) -> Result<String, String> {
         return Ok("SetExpression".into());
     }
 
-    fn visit_super_expr(&self, expr: &SuperExpression) -> Result<String, &'static str> {
+    fn visit_super_expr(&self, expr: &SuperExpression) -> Result<String, String> {
         return Ok("SuperExpression".into());
     }
 
-    fn visit_self_expr(&self, expr: &SelfExpression) -> Result<String, &'static str> {
+    fn visit_self_expr(&self, expr: &SelfExpression) -> Result<String, String> {
         return Ok("SelfExpression".into());
     }
 
-    fn visit_unary_expr(&self, expr: &UnaryExpression<R>) -> Result<String, &'static str> {
-        return self.paranthesize(expr.operator.lexeme, &[expr.right.as_ref()]);
+    fn visit_unary_expr(&self, expr: &UnaryExpression<String>) -> Result<String, String> {
+        return self.paranthesize(expr.operator.lexeme.clone(), &[expr.right.as_ref()]);
     }
 
-    fn visit_variable_expr(&self, expr: &VariableExpression) -> Result<String, &'static str> {
+    fn visit_variable_expr(&self, expr: &VariableExpression) -> Result<String, String> {
         return Ok("VariableExpression".into());
     }
 }
@@ -122,12 +122,12 @@ mod tests {
 
     #[test]
     fn test_ast_printer() {
-        let expr = BinaryExpression {
+        let expr: BinaryExpression<String> = BinaryExpression {
             left: Box::new(
-                UnaryExpression::<&'static str> {
+                UnaryExpression {
                     operator: Token {
                         kind: TokenKind::Minus,
-                        lexeme: "-",
+                        lexeme: "-".into(),
                         line: 1,
                         literal: None,
                     },
@@ -140,7 +140,7 @@ mod tests {
             ),
             operator: Token {
                 kind: TokenKind::Star,
-                lexeme: "*",
+                lexeme: "*".into(),
                 line: 1,
                 literal: None,
             },
@@ -166,7 +166,7 @@ mod tests {
     //
     //     let expression = BinaryExpression {
     //         left: Box::new(UnaryExpression {
-    //             operator: Token::new(TokenKind::Minus, "-", None, 1),
+    //             operator: Result<Token'a str, Token'b str>::new(TokenKind::Minus, "-", None, 1),
     //             right: Box::new(LiteralExpression::new(Some(Literal::Number(123.0)))),
     //         }),
     //         operator: Token::new(TokenKind::Star, "*", None, 1),

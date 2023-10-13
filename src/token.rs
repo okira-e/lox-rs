@@ -3,15 +3,21 @@ use crate::literal_types::Literal;
 
 /// Token is a struct that represents a token in a source file.
 #[derive(Debug, Clone)]
-pub struct Token<'a> {
+pub struct Token {
     pub kind: TokenKind,
-    pub lexeme: &'a str,
+    pub lexeme: String,
     pub line: usize,
-    pub literal: Option<Literal::<'a>>,
+    pub literal: Option<Literal>,
 }
 
-impl<'a> Token<'a> {
+impl Token {
     pub fn to_string(&self) -> String {
-        return format!("{}, type: {:?}, literal: {}", &self.lexeme, &self.kind, self.literal.as_ref().unwrap_or(&Literal::Nil).to_string());
+        return format!("{}, type: {:?}, literal: {}", &self.lexeme, &self.kind, self.literal.clone().unwrap_or(Literal::Nil).to_string());
+    }
+}
+
+impl AsRef<Token> for Token {
+    fn as_ref(&self) -> &Token {
+        return self;
     }
 }
