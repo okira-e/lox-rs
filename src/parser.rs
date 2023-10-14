@@ -180,9 +180,20 @@ impl<'a> Parser<'a> {
                 }
             );
         } else {
-            // TODO: This should be a proper error.
-            println!("Error: Expected expression. Current token: {:?}", self.peek());
-            std::process::exit(1);
+            self.errors.push(
+                CompilerError::new(
+                    format!("Expected expression"),
+                    self.peek().line,
+                    self.peek().column,
+                    None,
+                )
+            );
+
+            return Box::new(
+                LiteralExpression {
+                    value: None,
+                }
+            );
         }
     }
 
