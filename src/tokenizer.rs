@@ -176,6 +176,12 @@ impl<'a> Tokenizer<'a> {
                     let kind = self.match_keyword(value);
 
                     self.add_token(kind, None);
+                } else {
+                    self.errors.push(TokenizerError {
+                        line: self.line,
+                        message: format!("Unrecognized character \"{}\" at line {}.", current_char, self.line),
+                        hint: None,
+                    });
                 }
             }
         }
@@ -359,41 +365,41 @@ mod tests {
         }
     }
 
-    // mod handling_errors {
-    //     use crate::tokenizer::Tokenizer;
-    //
-    //     #[test]
-    //     fn unexpected_token() {
-    //         let input = "(*^)";
-    //         let mut tokenizer = Tokenizer::new(input);
-    //
-    //         let (tokens, errors) = tokenizer.scan_tokens();
-    //
-    //         assert_eq!(tokens.len(), 4);
-    //         assert_eq!(errors.len(), 1);
-    //     }
-    //
-    //     #[test]
-    //     fn multiple_errors() {
-    //         let input = "(*^) (+^) (^)";
-    //         let mut tokenizer = Tokenizer::new(input);
-    //
-    //         let (tokens, errors) = tokenizer.scan_tokens();
-    //
-    //         assert_eq!(tokens.len(), 9);
-    //         assert_eq!(errors.len(), 3);
-    //     }
-    //
-    //     #[test]
-    //     fn error_message() {
-    //         let input = "(*^)";
-    //         let mut tokenizer = Tokenizer::new(input);
-    //
-    //         let (tokens, errors) = tokenizer.scan_tokens();
-    //         assert_eq!(tokens.len(), 4);
-    //         assert_eq!(errors.len(), 1);
-    //         assert_eq!(errors[0].message, String::from("Unrecognized character \"^\" at line 1."));
-    //     }
-    // }
+    mod handling_errors {
+        use crate::tokenizer::Tokenizer;
+
+        #[test]
+        fn unexpected_token() {
+            let input = "(*^)";
+            let mut tokenizer = Tokenizer::new(input);
+
+            let (tokens, errors) = tokenizer.scan_tokens();
+
+            assert_eq!(tokens.len(), 4);
+            assert_eq!(errors.len(), 1);
+        }
+
+        #[test]
+        fn multiple_errors() {
+            let input = "(*^) (+^) (^)";
+            let mut tokenizer = Tokenizer::new(input);
+
+            let (tokens, errors) = tokenizer.scan_tokens();
+
+            assert_eq!(tokens.len(), 9);
+            assert_eq!(errors.len(), 3);
+        }
+
+        #[test]
+        fn error_message() {
+            let input = "(*^)";
+            let mut tokenizer = Tokenizer::new(input);
+
+            let (tokens, errors) = tokenizer.scan_tokens();
+            assert_eq!(tokens.len(), 4);
+            assert_eq!(errors.len(), 1);
+            assert_eq!(errors[0].message, String::from("Unrecognized character \"^\" at line 1."));
+        }
+    }
 }
 
