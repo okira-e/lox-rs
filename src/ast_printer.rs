@@ -129,6 +129,7 @@ mod tests {
                         kind: TokenKind::Minus,
                         lexeme: "-".into(),
                         line: 1,
+                        column: 1,
                         literal: None,
                     },
                     right: Box::new(
@@ -142,6 +143,7 @@ mod tests {
                 kind: TokenKind::Star,
                 lexeme: "*".into(),
                 line: 1,
+                column: 2,
                 literal: None,
             },
             right: Box::new(
@@ -159,22 +161,4 @@ mod tests {
 
         assert_eq!(ast_printer.print(&expr).unwrap(), "(* (- 123) (group 45.67))");
     }
-
-    // #[test]
-    // fn test_ast_printer() {
-    //     let ast_printer = AstPrinter { _phantom: std::marker::PhantomData };
-    //
-    //     let expression = BinaryExpression {
-    //         left: Box::new(UnaryExpression {
-    //             operator: Result<Token'a str, Token'b str>::new(TokenKind::Minus, "-", None, 1),
-    //             right: Box::new(LiteralExpression::new(Some(Literal::Number(123.0)))),
-    //         }),
-    //         operator: Token::new(TokenKind::Star, "*", None, 1),
-    //         right: Box::new(GroupingExpression {
-    //             expression: Box::new(LiteralExpression::new(Some(Literal::Number(45.67)))),
-    //         }),
-    //     };
-    //
-    //     assert_eq!(ast_printer.print(&expression).unwrap(), "(* (- 123) (group 45.67))");
-    // }
 }

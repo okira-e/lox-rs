@@ -9,6 +9,7 @@ pub struct Tokenizer<'a> {
     start_of_lexeme: usize,
     current_char: usize,
     line: usize,
+    column: usize, // NOTE: Set but not currently used.
     errors: Vec<TokenizerError>,
 }
 
@@ -20,6 +21,7 @@ impl<'a> Tokenizer<'a> {
             start_of_lexeme: 0,
             current_char: 0,
             line: 1,
+            column: 0,
             errors: Vec::new(),
         };
     }
@@ -28,6 +30,8 @@ impl<'a> Tokenizer<'a> {
     pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<TokenizerError>) {
         while !self.is_at_end() {
             self.start_of_lexeme = self.current_char;
+            self.column = self.start_of_lexeme + 1;
+
             self.scan_token();
         }
 
@@ -35,6 +39,7 @@ impl<'a> Tokenizer<'a> {
             kind: TokenKind::Eof,
             lexeme: "".into(),
             line: self.line,
+            column: self.column,
             literal: None,
         });
 
@@ -47,7 +52,9 @@ impl<'a> Tokenizer<'a> {
         let current_char = self.advance();
 
         match current_char {
-            '\n' => self.line += 1,
+            '\n' => {
+                self.line += 1;
+            },
             ' ' | '\r' | '\t' => (),
             '(' => self.add_token(TokenKind::LeftParen, None),
             ')' => self.add_token(TokenKind::RightParen, None),
@@ -110,20 +117,16 @@ impl<'a> Tokenizer<'a> {
             '"' => {
                 // As long as the next character isn't a double quote and we're not at the end
                 // of the source code, keep advancing.
-                while self.peek() != '"' && !self.is_at_end() {
-                    // If we encounter a newline, increment the line number.
-                    if self.peek() == '\n' {
-                        self.line += 1;
-                    }
-
+                while self.peek() != '"' && !self.is_at_end() && self.peek() != '\n' {
                     self.advance();
                 }
 
                 // If we're at the end of the source code before a closing '"', add an error.
-                if self.is_at_end() {
+                if self.peek() == '\n' || self.is_at_end() {
                     self.errors.push(TokenizerError {
                         line: self.line,
-                        message: "Unterminated string.".into(),
+                        column: self.column,
+                        message: format!("Unterminated string at line {}", self.line).into(),
                         hint: None,
                     });
 
@@ -156,6 +159,7 @@ impl<'a> Tokenizer<'a> {
                     let value = self.source[self.start_of_lexeme..self.current_char].parse::<f64>().unwrap_or_else(|err| {
                         self.errors.push(TokenizerError {
                             line: self.line,
+                            column: self.column,
                             message: format!("Error parsing number: {}", err),
                             hint: None,
                         });
@@ -179,6 +183,7 @@ impl<'a> Tokenizer<'a> {
                 } else {
                     self.errors.push(TokenizerError {
                         line: self.line,
+                        column: self.column,
                         message: format!("Unrecognized character \"{}\" at line {}.", current_char, self.line),
                         hint: None,
                     });
@@ -223,6 +228,7 @@ impl<'a> Tokenizer<'a> {
             kind,
             lexeme: text.to_string(),
             line: self.line,
+            column: self.column,
             literal,
         });
     }
@@ -248,7 +254,7 @@ impl<'a> Tokenizer<'a> {
         return true;
     }
 
-    /// advance consumes the current character the parser's at and returns it.
+    /// advance consumes the current character the Tokenizer's at and returns it.
     /// Then it increments the current index.
     fn advance(&mut self) -> char {
         let char = self.source.chars().nth(self.current_char).unwrap_or_else(|| {
@@ -259,8 +265,8 @@ impl<'a> Tokenizer<'a> {
         return char;
     }
 
-    /// peek returns the current character the parser's at without consuming it.
-    /// If the parser is at the end of the source code, it returns the null character.
+    /// peek returns the current character the Tokenizer's at without consuming it.
+    /// If the Tokenizer is at the end of the source code, it returns the null character.
     fn peek(&self) -> char {
         if self.is_at_end() {
             return '\0';
@@ -269,7 +275,7 @@ impl<'a> Tokenizer<'a> {
         return self.source.chars().nth(self.current_char).unwrap();
     }
 
-    /// peek_next returns the next character the parser's at without consuming it.
+    /// peek_next returns the next character the Tokenizer's at without consuming it.
     fn peek_next(&self) -> char {
         if self.current_char + 1 >= self.source.len() {
             return '\0';
@@ -278,6 +284,7 @@ impl<'a> Tokenizer<'a> {
         return self.source.chars().nth(self.current_char + 1).unwrap();
     }
 
+    /// Checks if the Tokenizer is at the end of the source code.
     fn is_at_end(&self) -> bool {
         return self.current_char >= self.source.len();
     }
@@ -286,6 +293,7 @@ impl<'a> Tokenizer<'a> {
 #[derive(Debug)]
 pub struct TokenizerError {
     pub line: usize,
+    pub column: usize,
     pub message: String,
     pub hint: Option<String>,
 }
@@ -348,7 +356,20 @@ mod tests {
 
             assert_eq!(tokens.len(), 1);
             assert_eq!(errors.len(), 1);
+            assert_eq!(errors[0].line, 1);
         }
+        #[test]
+        fn unterminated_string_multiple_lines_src() {
+            let input = "\"Hello, world!))\n var x = 1;";
+            let mut tokenizer = Tokenizer::new(input);
+
+            let (tokens, errors) = tokenizer.scan_tokens();
+
+            assert_eq!(tokens.len(), 6);
+            assert_eq!(errors.len(), 1);
+            assert_eq!(errors[0].line, 1);
+        }
+
     }
 
     mod handling_errors {
@@ -356,12 +377,12 @@ mod tests {
 
         #[test]
         fn unexpected_token() {
-            let input = "(*^)";
+            let input = "var x = 5;^"; // The ^ is the unexpected token.
             let mut tokenizer = Tokenizer::new(input);
 
             let (tokens, errors) = tokenizer.scan_tokens();
 
-            assert_eq!(tokens.len(), 4);
+            assert_eq!(tokens.len(), 6);
             assert_eq!(errors.len(), 1);
         }
 

@@ -65,7 +65,7 @@ impl<'a, R: Display + Debug> Expr<R> for BinaryExpression<R> {
 
 impl<'a, R: Display + Debug> Display for BinaryExpression<R> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "({} {} {})", self.operator.lexeme, self.right, self.left);
+        return write!(f, "({} {} {})", self.operator.lexeme, self.left, self.right);
     }
 }
 

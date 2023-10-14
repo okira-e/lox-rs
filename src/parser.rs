@@ -214,24 +214,28 @@ mod tests {
                 kind: TokenKind::Number,
                 lexeme: "123".into(),
                 line: 1,
+                column: 1,
                 literal: Some(Literal::Number(123.into())),
             },
             Token {
                 kind: TokenKind::Star,
                 lexeme: "*".into(),
                 line: 1,
+                column: 2,
                 literal: None,
             },
             Token {
                 kind: TokenKind::Number,
                 lexeme: "45.67".into(),
                 line: 1,
+                column: 3,
                 literal: Some(Literal::Number(45.67.into())),
             },
             Token {
                 kind: TokenKind::Eof,
                 lexeme: "".into(),
                 line: 1,
+                column: 4,
                 literal: None,
             },
         ];

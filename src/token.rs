@@ -8,6 +8,7 @@ pub struct Token {
     pub kind: TokenKind,
     pub lexeme: String,
     pub line: usize,
+    pub column: usize,
     pub literal: Option<Literal>,
 }
 
