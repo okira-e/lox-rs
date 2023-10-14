@@ -281,20 +281,6 @@ impl<'a> Tokenizer<'a> {
     fn is_at_end(&self) -> bool {
         return self.current_char >= self.source.len();
     }
-
-    // fn add_error(&mut self, value: &str, hint: Option<String>) {
-    //     self.errors.push(
-    //         TokenizerError {
-    //             line: self.line,
-    //             message: format!("Unrecognized {} \"{}\" at line {}.", if value.len() == 1 {
-    //                 "character"
-    //             } else {
-    //                 "identifier"
-    //             }, value, self.line),
-    //             hint,
-    //         }
-    //     );
-    // }
 }
 
 #[derive(Debug)]
