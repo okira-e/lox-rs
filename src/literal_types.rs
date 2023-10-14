@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, Clone)]
 /// An enum that represents the type of a literal. It's used to determine how to
 /// parse the literal.
@@ -16,5 +18,11 @@ impl Literal {
             Literal::Boolean(b) => b.to_string(),
             Literal::Nil => "None".into(),
         }
+    }
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        return write!(f, "{}", self.to_string());
     }
 }

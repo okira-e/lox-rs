@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display};
 use crate::literal_types::Literal;
 use crate::token::Token;
 
-pub trait ExprVisitor<'a, R: Display> {
+pub trait ExprVisitor<'a, R: Display + Debug> {
     fn visit_assign_expr(&self, expr: &AssignExpression::<R>) -> Result<R, &'static str>;
     fn visit_binary_expr(&self, expr: &BinaryExpression::<R>) -> Result<R, &'static str>;
     fn visit_call_expr(&self, expr: &CallExpression::<R>) -> Result<R, &'static str>;
@@ -18,15 +18,8 @@ pub trait ExprVisitor<'a, R: Display> {
 }
 
 /// A trait that represents an expression in the AST.
-/// 'a is the lifetime of the expression.
-pub trait Expr<R: Display> {
+pub trait Expr<R: Display + Debug> : Display + Debug {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str>;
-}
-
-impl Display for dyn Expr<&'static str> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self);
-    }
 }
 
 /// Assign expressions are expressions that assign a value to a variable.
@@ -34,14 +27,21 @@ impl Display for dyn Expr<&'static str> {
 /// ```
 /// var x = 1;
 /// ```
+#[derive(Debug)]
 pub struct AssignExpression<R> {
     pub name: Token,
     pub value: Box<dyn Expr::<R>>,
 }
 
-impl<'a, R: Display> Expr<R> for AssignExpression<R> {
+impl<'a, R: Display + Debug> Expr<R> for AssignExpression<R> {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_assign_expr(self);
+    }
+}
+
+impl<'a, R: Display + Debug> Display for AssignExpression<R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", self);
     }
 }
 
@@ -50,48 +50,71 @@ impl<'a, R: Display> Expr<R> for AssignExpression<R> {
 /// ```
 /// 1 + 2
 /// ```
+#[derive(Debug)]
 pub struct BinaryExpression<R> {
     pub left: Box<dyn Expr::<R>>,
     pub operator: Token,
     pub right: Box<dyn Expr::<R>>,
 }
 
-impl<'a, R: Display> Expr<R> for BinaryExpression<R> {
+impl<'a, R: Display + Debug> Expr<R> for BinaryExpression<R> {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_binary_expr(self);
     }
 }
+
+impl<'a, R: Display + Debug> Display for BinaryExpression<R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "({} {} {})", self.operator.lexeme, self.right, self.left);
+    }
+}
+
 
 /// Call expressions are expressions that call a function.
 /// ## Example
 /// ```
 /// a_function();
 /// ```
+#[derive(Debug)]
 pub struct CallExpression<R> {
     pub callee: Box<dyn Expr::<R>>,
     pub paren: Token,
     pub arguments: Vec<Box<dyn Expr::<R>>>,
 }
 
-impl<'a, R: Display> Expr<R> for CallExpression<R> {
+impl<'a, R: Display + Debug> Expr<R> for CallExpression<R> {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_call_expr(self);
     }
 }
 
-/// Get expressions are expressions that get a property from an object.
+impl<'a, R: Display + Debug> Display for CallExpression<R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", self);
+    }
+}
+
+/// Get expressions are expressions that get a property from an object
 /// ## Example
 /// ```
 /// object.property
 /// ```
+#[derive(Debug)]
 pub struct GetExpression<R> {
     pub object: Box<dyn Expr::<R>>,
     pub name: Token,
 }
 
-impl<'a, R: Display> Expr<R> for GetExpression<R> {
+impl<'a, R: Display + Debug> Expr<R> for GetExpression<R> {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_get_expr(self);
+    }
+}
+
+
+impl<'a, R: Display + Debug> Display for GetExpression<R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", self);
     }
 }
 
@@ -100,13 +123,20 @@ impl<'a, R: Display> Expr<R> for GetExpression<R> {
 /// ```
 /// (1 + 2)
 /// ```
+#[derive(Debug)]
 pub struct GroupingExpression<R> {
     pub expression: Box<dyn Expr::<R>>,
 }
 
-impl<'a, R: Display> Expr<R> for GroupingExpression<R> {
+impl<'a, R: Display + Debug> Expr<R> for GroupingExpression<R> {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_grouping_expr(self);
+    }
+}
+
+impl<'a, R: Display + Debug> Display for GroupingExpression<R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", self.expression);
     }
 }
 
@@ -115,13 +145,20 @@ impl<'a, R: Display> Expr<R> for GroupingExpression<R> {
 /// ```
 /// 1
 /// ```
+#[derive(Debug)]
 pub struct LiteralExpression {
     pub value: Option<Literal>,
 }
 
-impl<'a, R: Display> Expr<R> for LiteralExpression {
+impl<'a, R: Display + Debug> Expr<R> for LiteralExpression {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_literal_expr(self);
+    }
+}
+
+impl<'a> Display for LiteralExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", self.value.clone().unwrap_or(Literal::Nil));
     }
 }
 
@@ -130,15 +167,22 @@ impl<'a, R: Display> Expr<R> for LiteralExpression {
 /// ```
 /// true and false
 /// ```
+#[derive(Debug)]
 pub struct LogicalExpression<R> {
     pub left: Box<dyn Expr::<R>>,
     pub operator: Token,
     pub right: Box<dyn Expr::<R>>,
 }
 
-impl<'a, R: Display> Expr<R> for LogicalExpression<R> {
+impl<'a, R: Display + Debug> Expr<R> for LogicalExpression<R> {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_logical_expr(self);
+    }
+}
+
+impl<'a, R: Display + Debug> Display for LogicalExpression<R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{} {} {}", self.operator.lexeme, self.right, self.left);
     }
 }
 
@@ -147,15 +191,22 @@ impl<'a, R: Display> Expr<R> for LogicalExpression<R> {
 /// ```
 /// object.property = 1;
 /// ```
+#[derive(Debug)]
 pub struct SetExpression<R> {
     pub object: Box<dyn Expr::<R>>,
     pub name: Token,
     pub value: Box<dyn Expr::<R>>,
 }
 
-impl<'a, R: Display> Expr<R> for SetExpression<R> {
+impl<'a, R: Display + Debug> Expr<R> for SetExpression<R> {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_set_expr(self);
+    }
+}
+
+impl<'a, R: Display + Debug> Display for SetExpression<R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", self);
     }
 }
 
@@ -164,25 +215,39 @@ impl<'a, R: Display> Expr<R> for SetExpression<R> {
 /// ```
 /// super.method();
 /// ```
+#[derive(Debug)]
 pub struct SuperExpression {
     pub keyword: Token,
     pub method: Token,
 }
 
-impl<'a, R: Display> Expr<R> for SuperExpression {
+impl<'a, R: Display + Debug> Expr<R> for SuperExpression {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_super_expr(self);
     }
 }
 
+impl<'a> Display for SuperExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", self);
+    }
+}
+
 /// Self expressions are expressions that call a method on the current class.
+#[derive(Debug)]
 pub struct SelfExpression {
     pub keyword: Token,
 }
 
-impl<'a, R: Display> Expr<R> for SelfExpression {
+impl<'a, R: Display + Debug> Expr<R> for SelfExpression {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_self_expr(self);
+    }
+}
+
+impl<'a> Display for SelfExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", self);
     }
 }
 
@@ -191,29 +256,42 @@ impl<'a, R: Display> Expr<R> for SelfExpression {
 /// ```
 /// !true
 /// ```
+#[derive(Debug)]
 pub struct UnaryExpression<R> {
     pub operator: Token,
     pub right: Box<dyn Expr::<R>>,
 }
 
-impl<'a, R: Display> Expr<R> for UnaryExpression<R> {
+impl<'a, R: Display + Debug> Expr<R> for UnaryExpression<R> {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_unary_expr(self);
     }
 }
 
+impl<'a, R: Display + Debug> Display for UnaryExpression<R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", self);
+    }
+}
 
 /// Variable expressions are expressions that are variables.
 /// ## Example
 /// ```
 /// var x = 1;
 /// ```
+#[derive(Debug)]
 pub struct VariableExpression {
     pub name: Token,
 }
 
-impl<'a, R: Display> Expr<R> for VariableExpression {
+impl<'a, R: Display + Debug> Expr<R> for VariableExpression {
     fn accept(&self, visitor: &dyn ExprVisitor<R>) -> Result<R, &'static str> {
         return visitor.visit_variable_expr(self);
+    }
+}
+
+impl<'a> Display for VariableExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", self);
     }
 }

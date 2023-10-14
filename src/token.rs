@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use crate::token_kinds::TokenKind;
 use crate::literal_types::Literal;
 
@@ -19,5 +20,11 @@ impl Token {
 impl AsRef<Token> for Token {
     fn as_ref(&self) -> &Token {
         return self;
+    }
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        return write!(f, "{}", self.to_string());
     }
 }
