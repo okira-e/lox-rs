@@ -9,6 +9,7 @@ mod expressions;
 mod ast_printer;
 
 mod parser;
+mod language_errors;
 
 use std::io::Write;
 use std::{fs, io};

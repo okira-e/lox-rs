@@ -1,4 +1,5 @@
 use crate::expressions::{BinaryExpression, Expr, GroupingExpression, LiteralExpression, UnaryExpression};
+use crate::language_errors::CompilerError;
 use crate::literal_types::Literal;
 use crate::token::Token;
 use crate::token_kinds::TokenKind;
@@ -19,6 +20,7 @@ use crate::token_kinds::TokenKind;
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
+    errors: Vec<CompilerError>,
 }
 
 impl<'a> Parser<'a> {
@@ -26,6 +28,7 @@ impl<'a> Parser<'a> {
         return Parser {
             tokens,
             current: 0,
+            errors: Vec::new(),
         };
     }
 
@@ -149,12 +152,24 @@ impl<'a> Parser<'a> {
                 }
             );
         } else if self.peek().kind == TokenKind::LeftParen {
+            // We don't capture any of the parentheses tokens. We only group the expression.
+
+            self.advance();
+
             let expr: Box<dyn Expr<String>> = self.expression_rule();
 
+            println!("{}", self.peek());
+
+            // Check if the next token is a closing parenthesis.
             if self.peek().kind != TokenKind::RightParen {
-                // TODO: This should be a proper error.
-                println!("Error: Expected ')' after expression.");
-                std::process::exit(1);
+                self.errors.push(
+                    CompilerError::new(
+                        format!("Expected ')' after expression"),
+                        self.peek().line,
+                        self.peek().column,
+                        None,
+                    )
+                );
             }
 
             self.advance();
@@ -211,6 +226,13 @@ mod tests {
     fn test_parser() {
         let tokens = vec![
             Token {
+                kind: TokenKind::LeftParen,
+                lexeme: "(".into(),
+                line: 1,
+                column: 0,
+                literal: None,
+            },
+            Token {
                 kind: TokenKind::Number,
                 lexeme: "123".into(),
                 line: 1,
@@ -232,6 +254,13 @@ mod tests {
                 literal: Some(Literal::Number(45.67.into())),
             },
             Token {
+                kind: TokenKind::RightParen,
+                lexeme: ")".into(),
+                line: 1,
+                column: 0,
+                literal: None,
+            },
+            Token {
                 kind: TokenKind::Eof,
                 lexeme: "".into(),
                 line: 1,
@@ -244,6 +273,6 @@ mod tests {
 
         let expr = parser.expression_rule();
 
-        assert_eq!(expr.to_string(), "(* 123 45.67)");
+        assert_eq!(expr.to_string(), "((* 123 45.67))");
     }
 }

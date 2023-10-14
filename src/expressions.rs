@@ -41,7 +41,7 @@ impl<'a, R: Display + Debug> Expr<R> for AssignExpression<R> {
 
 impl<'a, R: Display + Debug> Display for AssignExpression<R> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self);
+        return write!(f, "={} {}", self.name.lexeme, self.value);
     }
 }
 
@@ -90,7 +90,7 @@ impl<'a, R: Display + Debug> Expr<R> for CallExpression<R> {
 
 impl<'a, R: Display + Debug> Display for CallExpression<R> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self);
+        return write!(f, "call {} with {:?}", self.callee, self.arguments);
     }
 }
 
@@ -136,7 +136,7 @@ impl<'a, R: Display + Debug> Expr<R> for GroupingExpression<R> {
 
 impl<'a, R: Display + Debug> Display for GroupingExpression<R> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self.expression);
+        return write!(f, "({})", self.expression);
     }
 }
 
