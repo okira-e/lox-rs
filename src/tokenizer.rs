@@ -331,8 +331,6 @@ mod tests {
 
             let (tokens, errors) = tokenizer.scan_tokens();
 
-            println!("OKIRA: {:?}", tokens);
-
             assert_eq!(tokens.len(), 25);
             assert_eq!(errors.len(), 0);
         }
