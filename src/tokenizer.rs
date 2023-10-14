@@ -1,3 +1,4 @@
+use crate::language_errors::CompilerError;
 use crate::literal_types::Literal;
 use crate::token::Token;
 use crate::token_kinds::TokenKind;
@@ -9,8 +10,9 @@ pub struct Tokenizer<'a> {
     start_of_lexeme: usize,
     current_char: usize,
     line: usize,
-    column: usize, // NOTE: Set but not currently used.
-    errors: Vec<TokenizerError>,
+    column: usize,
+    // NOTE: Set but not currently used.
+    errors: Vec<CompilerError>,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -27,7 +29,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// scan_tokens scans the source code and returns a vector of tokens.
-    pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<TokenizerError>) {
+    pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<CompilerError>) {
         while !self.is_at_end() {
             self.start_of_lexeme = self.current_char;
             self.column = self.start_of_lexeme + 1;
@@ -54,7 +56,7 @@ impl<'a> Tokenizer<'a> {
         match current_char {
             '\n' => {
                 self.line += 1;
-            },
+            }
             ' ' | '\r' | '\t' => (),
             '(' => self.add_token(TokenKind::LeftParen, None),
             ')' => self.add_token(TokenKind::RightParen, None),
@@ -123,12 +125,14 @@ impl<'a> Tokenizer<'a> {
 
                 // If we're at the end of the source code before a closing '"', add an error.
                 if self.peek() == '\n' || self.is_at_end() {
-                    self.errors.push(TokenizerError {
-                        line: self.line,
-                        column: self.column,
-                        message: format!("Unterminated string at line {}", self.line).into(),
-                        hint: None,
-                    });
+                    self.errors.push(
+                        CompilerError::new(
+                            "Unterminated string".into(),
+                            self.line,
+                            self.column,
+                            None,
+                        )
+                    );
 
                     return;
                 }
@@ -138,7 +142,8 @@ impl<'a> Tokenizer<'a> {
 
                 // The value of the string literal is the substring of the source code from the
                 // start index to the current index.
-                let value = self.source[self.start_of_lexeme + 1..self.current_char - 1].to_string();
+                let value = self.source[self.start_of_lexeme + 1..self.current_char - 1]
+                    .to_string();
                 self.add_token(TokenKind::String, Some(Literal::String(value)));
             }
             _ => { // Handle numbers and identifiers.
@@ -156,13 +161,16 @@ impl<'a> Tokenizer<'a> {
                         }
                     }
 
-                    let value = self.source[self.start_of_lexeme..self.current_char].parse::<f64>().unwrap_or_else(|err| {
-                        self.errors.push(TokenizerError {
-                            line: self.line,
-                            column: self.column,
-                            message: format!("Error parsing number: {}", err),
-                            hint: None,
-                        });
+                    let value = self.source[self.start_of_lexeme..self.current_char].
+                        parse::<f64>().unwrap_or_else(|err| {
+                        self.errors.push(
+                            CompilerError::new(
+                                format!("Error parsing number: {}", err),
+                                self.line,
+                                self.column,
+                                None,
+                            )
+                        );
 
                         return 0f64;
                     });
@@ -181,12 +189,14 @@ impl<'a> Tokenizer<'a> {
 
                     self.add_token(kind, None);
                 } else {
-                    self.errors.push(TokenizerError {
-                        line: self.line,
-                        column: self.column,
-                        message: format!("Unrecognized character \"{}\" at line {}.", current_char, self.line),
-                        hint: None,
-                    });
+                    self.errors.push(
+                        CompilerError::new(
+                            format!("Unrecognized character \"{}\"", current_char),
+                            self.line,
+                            self.column,
+                            None,
+                        )
+                    );
                 }
             }
         }
@@ -244,7 +254,10 @@ impl<'a> Tokenizer<'a> {
         let next_char = self.source.chars().nth(self.current_char).unwrap_or_else(|| {
             // This should never happen because we check if we're at the end of the source code
             // before calling this function.
-            panic!("No character at index {}. Last read character was {}", self.current_char, self.source.chars().nth(self.current_char - 1).unwrap());
+            panic!("No character at index {}. Last read character was {}",
+                   self.current_char,
+                   self.source.chars().nth(self.current_char - 1).unwrap()
+            );
         });
         if next_char != expected_next {
             return false;
@@ -258,7 +271,10 @@ impl<'a> Tokenizer<'a> {
     /// Then it increments the current index.
     fn advance(&mut self) -> char {
         let char = self.source.chars().nth(self.current_char).unwrap_or_else(|| {
-            panic!("No character at index {}. Last read character was {}", self.current_char, self.source.chars().nth(self.current_char - 1).unwrap());
+            panic!("No character at index {}. Last read character was {}",
+                   self.current_char,
+                   self.source.chars().nth(self.current_char - 1).unwrap()
+            );
         });
         self.current_char += 1;
 
@@ -290,13 +306,6 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
-#[derive(Debug)]
-pub struct TokenizerError {
-    pub line: usize,
-    pub column: usize,
-    pub message: String,
-    pub hint: Option<String>,
-}
 
 #[cfg(test)]
 mod tests {
@@ -358,6 +367,7 @@ mod tests {
             assert_eq!(errors.len(), 1);
             assert_eq!(errors[0].line, 1);
         }
+
         #[test]
         fn unterminated_string_multiple_lines_src() {
             let input = "\"Hello, world!))\n var x = 1;";
@@ -369,7 +379,6 @@ mod tests {
             assert_eq!(errors.len(), 1);
             assert_eq!(errors[0].line, 1);
         }
-
     }
 
     mod handling_errors {
