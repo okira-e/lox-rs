@@ -318,11 +318,22 @@ mod tests {
 
         #[test]
         fn scan_tokens() {
-            let input = "(*)";
+            let input = "\
+            var name = \"Lox\";
+
+            if name == \"Lox\" {
+                print \"Hello, \" + name + \"!\";
+            } else {
+                print \"Hello, world!\";
+            }
+            ";
             let mut tokenizer = Tokenizer::new(input);
 
             let (tokens, errors) = tokenizer.scan_tokens();
-            assert_eq!(tokens.len(), 4);
+
+            println!("OKIRA: {:?}", tokens);
+
+            assert_eq!(tokens.len(), 25);
             assert_eq!(errors.len(), 0);
         }
 
