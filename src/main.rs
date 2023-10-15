@@ -83,7 +83,7 @@ fn run(input: &str) {
 
 /// Pretty print the AST to stdout.
 fn pretty_print(expr: &Box<dyn Expr>) {
-    println!("{expr}");
+    println!("{}", expr.print());
 }
 
 /// Report a compiler error.

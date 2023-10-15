@@ -4,11 +4,9 @@ use crate::literal_types::Literal;
 use crate::token::Token;
 
 /// A trait that represents an expression in the AST.
-///
-/// It is empty because the common functionality that all expressions share for now (that allows
-/// for polymorphism therefore we create this Expr trait) is implemented in Display and Debug which
-/// are required for all expressions.
-pub trait Expr: Display + Debug {}
+pub trait Expr: Debug {
+    fn print(&self) -> String;
+}
 
 /// Assign expressions are expressions that assign a value to a variable.
 /// ## Example
@@ -21,11 +19,9 @@ pub struct AssignExpression {
     pub value: Box<dyn Expr>,
 }
 
-impl Expr for AssignExpression {}
-
-impl Display for AssignExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "={} {}", self.name.lexeme, self.value);
+impl Expr for AssignExpression {
+    fn print(&self) -> String {
+        return format!("={} {}", self.name.lexeme, self.value.print());
     }
 }
 
@@ -40,11 +36,9 @@ pub struct BinaryExpression {
     pub operator: Token,
     pub right: Box<dyn Expr>,
 }
-impl Expr for BinaryExpression {}
-
-impl Display for BinaryExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "({} {} {})", self.operator.lexeme, self.left, self.right);
+impl Expr for BinaryExpression {
+    fn print(&self) -> String {
+        return format!("({} {} {})", self.operator.lexeme, self.left.print(), self.right.print());
     }
 }
 
@@ -59,11 +53,9 @@ pub struct CallExpression {
     pub paren: Token,
     pub arguments: Vec<Box<dyn Expr>>,
 }
-impl Expr for CallExpression {}
-
-impl Display for CallExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "call {} with {:?}", self.callee, self.arguments);
+impl Expr for CallExpression {
+    fn print(&self) -> String {
+        return format!("call {} with {:?}", self.callee.print(), self.arguments);
     }
 }
 
@@ -77,13 +69,12 @@ pub struct GetExpression {
     pub object: Box<dyn Expr>,
     pub name: Token,
 }
-impl Expr for GetExpression {}
-
-impl Display for GetExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, ".{} {}", self.object, self.name.lexeme);
+impl Expr for GetExpression {
+    fn print(&self) -> String {
+        return format!(".{} {}", self.object.print(), self.name.lexeme);
     }
 }
+
 
 /// Grouping expressions are expressions that group other expressions together.
 /// ## Example
@@ -94,13 +85,12 @@ impl Display for GetExpression {
 pub struct GroupingExpression {
     pub expression: Box<dyn Expr>,
 }
-impl Expr for GroupingExpression {}
-
-impl Display for GroupingExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "({})", self.expression);
+impl Expr for GroupingExpression {
+    fn print(&self) -> String {
+        return format!("({})", self.expression.print());
     }
 }
+
 
 /// Literal expressions are expressions that are literals.
 /// ## Example
@@ -111,13 +101,12 @@ impl Display for GroupingExpression {
 pub struct LiteralExpression {
     pub value: Option<Literal>,
 }
-impl Expr for LiteralExpression {}
-
-impl<'a> Display for LiteralExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self.value.clone().unwrap_or(Literal::Nil));
+impl Expr for LiteralExpression {
+    fn print(&self) -> String {
+        return format!("{}", self.value.clone().unwrap_or(Literal::Nil));
     }
 }
+
 
 /// Logical expressions are expressions that are logical.
 /// ## Example
@@ -130,13 +119,12 @@ pub struct LogicalExpression {
     pub operator: Token,
     pub right: Box<dyn Expr>,
 }
-impl Expr for LogicalExpression {}
-
-impl Display for LogicalExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{} {} {}", self.operator.lexeme, self.right, self.left);
+impl Expr for LogicalExpression {
+    fn print(&self) -> String {
+        return format!("{} {} {}", self.operator.lexeme, self.right.print(), self.left.print());
     }
 }
+
 
 /// Set expressions are expressions that set a property on an object.
 /// ## Example
@@ -149,13 +137,12 @@ pub struct SetExpression {
     pub name: Token,
     pub value: Box<dyn Expr>,
 }
-impl Expr for SetExpression {}
-
-impl Display for SetExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "={} {} {}", self.object, self.name.lexeme, self.name.lexeme);
+impl Expr for SetExpression {
+    fn print(&self) -> String {
+        return format!("={} {} {}", self.object.print(), self.name.lexeme, self.name.lexeme);
     }
 }
+
 
 /// Super expressions are expressions that call a method on the superclass.
 /// ## Example
@@ -167,26 +154,24 @@ pub struct SuperExpression {
     pub keyword: Token,
     pub method: Token,
 }
-impl Expr for SuperExpression {}
-
-impl<'a> Display for SuperExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "super.{}", self.method.lexeme);
+impl Expr for SuperExpression {
+    fn print(&self) -> String {
+        return format!("super.{}", self.method.lexeme);
     }
 }
+
 
 /// Self expressions are expressions that call a method on the current class.
 #[derive(Debug)]
 pub struct SelfExpression {
     pub keyword: Token,
 }
-impl Expr for SelfExpression {}
-
-impl<'a> Display for SelfExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "self");
+impl Expr for SelfExpression {
+    fn print(&self) -> String {
+        return format!("self");
     }
 }
+
 
 /// Unary expressions are expressions that have a single side and an operator.
 /// ## Example
@@ -198,13 +183,12 @@ pub struct UnaryExpression {
     pub operator: Token,
     pub right: Box<dyn Expr>,
 }
-impl Expr for UnaryExpression {}
-
-impl Display for UnaryExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "({} {})", self.operator.lexeme, self.right);
+impl Expr for UnaryExpression {
+    fn print(&self) -> String {
+        return format!("({} {})", self.operator.lexeme, self.right.print());
     }
 }
+
 
 /// Variable expressions are expressions that are variables.
 /// ## Example
@@ -215,14 +199,13 @@ impl Display for UnaryExpression {
 pub struct VariableExpression {
     pub name: Token,
 }
-impl Expr for VariableExpression {}
-
-
-impl<'a> Display for VariableExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self.name.lexeme);
+impl Expr for VariableExpression {
+    fn print(&self) -> String {
+        return format!("{}", self.name.lexeme);
     }
 }
+
+
 
 // use std::fmt::{Debug, Display};
 // use crate::literal_types::Literal;
