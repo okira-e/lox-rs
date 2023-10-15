@@ -1,6 +1,7 @@
 use crate::expressions::{BinaryExpression, Expr, GroupingExpression, LiteralExpression, UnaryExpression};
-use crate::language_errors::CompilerError;
+use crate::compiler_error::CompilerError;
 use crate::literal_types::Literal;
+use crate::report_error;
 use crate::token::Token;
 use crate::token_kinds::TokenKind;
 
@@ -20,7 +21,6 @@ use crate::token_kinds::TokenKind;
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
-    errors: Vec<CompilerError>,
 }
 
 impl<'a> Parser<'a> {
@@ -28,18 +28,11 @@ impl<'a> Parser<'a> {
         return Parser {
             tokens,
             current: 0,
-            errors: Vec::new(),
         };
     }
 
-    pub fn parse(&mut self) -> Result<Box<dyn Expr>, &Vec<CompilerError>> {
-        let expr = self.expression_rule();
-
-        if !self.errors.is_empty() {
-            return Err(&self.errors);
-        }
-
-        return Ok(expr);
+    pub fn parse(&mut self) -> Box<dyn Expr> {
+        return self.expression_rule();
     }
 
     fn expression_rule(&mut self) -> Box<dyn Expr> {
@@ -129,38 +122,38 @@ impl<'a> Parser<'a> {
     }
 
     fn primary_rule(&mut self) -> Box<dyn Expr> {
-        if self.peek().kind == TokenKind::True {
+        return if self.peek().kind == TokenKind::True {
             self.advance();
 
-            return Box::new(
+            Box::new(
                 LiteralExpression {
                     value: Some(Literal::Boolean(true)),
                 }
-            );
+            )
         } else if self.peek().kind == TokenKind::False {
             self.advance();
 
-            return Box::new(
+            Box::new(
                 LiteralExpression {
                     value: Some(Literal::Boolean(false)),
                 }
-            );
+            )
         } else if self.peek().kind == TokenKind::Nil {
             self.advance();
 
-            return Box::new(
+            Box::new(
                 LiteralExpression {
                     value: Some(Literal::Nil),
                 }
-            );
+            )
         } else if self.peek().kind == TokenKind::String || self.peek().kind == TokenKind::Number {
             self.advance();
 
-            return Box::new(
+            Box::new(
                 LiteralExpression {
                     value: self.previous().literal.clone(),
                 }
-            );
+            )
         } else if self.peek().kind == TokenKind::LeftParen {
             // We don't capture any of the parentheses tokens. We only group the expression.
 
@@ -172,8 +165,8 @@ impl<'a> Parser<'a> {
 
             // Check if the next token is a closing parenthesis.
             if self.peek().kind != TokenKind::RightParen {
-                self.errors.push(
-                    CompilerError::new(
+                report_error(
+                    &CompilerError::new(
                         format!("Expected ')' after expression"),
                         self.peek().line,
                         self.peek().column,
@@ -184,14 +177,14 @@ impl<'a> Parser<'a> {
 
             self.advance();
 
-            return Box::new(
+            Box::new(
                 GroupingExpression {
                     expression: expr,
                 }
-            );
+            )
         } else {
-            self.errors.push(
-                CompilerError::new(
+            report_error(
+                &CompilerError::new(
                     format!("Expected expression"),
                     self.peek().line,
                     self.peek().column,
@@ -199,11 +192,11 @@ impl<'a> Parser<'a> {
                 )
             );
 
-            return Box::new(
+            Box::new(
                 LiteralExpression {
                     value: None,
                 }
-            );
+            )
         }
     }
 

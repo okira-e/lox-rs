@@ -1,4 +1,4 @@
-use crate::language_errors::CompilerError;
+use crate::compiler_error::CompilerError;
 use crate::literal_types::Literal;
 use crate::token::Token;
 use crate::token_kinds::TokenKind;
@@ -271,10 +271,11 @@ impl<'a> Tokenizer<'a> {
     /// Then it increments the current index.
     fn advance(&mut self) -> char {
         let char = self.source.chars().nth(self.current_char).unwrap_or_else(|| {
-            panic!("No character at index {}. Last read character was {}",
+            println!("No character at index {}. Last read character was {}",
                    self.current_char,
                    self.source.chars().nth(self.current_char - 1).unwrap()
             );
+            std::process::exit(1);
         });
         self.current_char += 1;
 
@@ -423,7 +424,7 @@ mod tests {
             let (tokens, errors) = tokenizer.scan_tokens();
             assert_eq!(tokens.len(), 4);
             assert_eq!(errors.len(), 1);
-            assert_eq!(errors[0].message, String::from("Unrecognized character \"^\" at line 1."));
+            assert_eq!(errors[0].msg, String::from("Unrecognized character \"^\" at line 1."));
         }
     }
 }

@@ -9,11 +9,12 @@ mod expressions;
 mod ast_printer;
 
 mod parser;
-mod language_errors;
+mod compiler_error;
 
 use std::io::Write;
 use std::{fs, io};
 use tokenizer::{Tokenizer};
+use crate::compiler_error::CompilerError;
 use crate::expressions::Expr;
 use crate::parser::Parser;
 
@@ -65,29 +66,29 @@ fn run(input: &str) {
     let mut tokenizer = Tokenizer::new(input);
     let (tokens, errors) = tokenizer.scan_tokens();
 
-    if !errors.is_empty() {
-        for error in errors {
-            println!("{}", error.message);
+    if errors.len() > 0 {
+        for err in errors {
+            report_error(err);
         }
 
-        // std::process::exit(65);
-        return;
+        std::process::exit(1);
     }
 
     let mut parser = Parser::new(tokens);
 
-    match parser.parse() {
-        Ok(expr) => {
-            pretty_print(&expr);
-        },
-        Err(err) => {
-            err.iter().for_each(|err| {
-                println!("OKIRA: {}", err.message);
-            })
-        },
-    }
+    let expr = parser.parse();
+
+    pretty_print(&expr);
 }
 
+/// Pretty print the AST to stdout.
 fn pretty_print(expr: &Box<dyn Expr>) {
     println!("{expr}");
+}
+
+/// Report a compiler error.
+pub fn report_error(err: &CompilerError) {
+    let err_msg = &format!("at line {}", err.line);
+
+    println!("{} {}.", err.msg, err_msg);
 }
