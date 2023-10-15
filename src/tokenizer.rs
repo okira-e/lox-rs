@@ -4,6 +4,7 @@ use crate::token::Token;
 use crate::token_kinds::TokenKind;
 
 /// Tokenizer is responsible for scanning the source code and returning a vector of tokens and errors.
+/// The Tokenizer stores errors and returns them in a vector alongside the tokens.
 pub struct Tokenizer<'a> {
     source: &'a str,
     tokens: Vec<Token>,
@@ -424,7 +425,7 @@ mod tests {
             let (tokens, errors) = tokenizer.scan_tokens();
             assert_eq!(tokens.len(), 4);
             assert_eq!(errors.len(), 1);
-            assert_eq!(errors[0].msg, String::from("Unrecognized character \"^\" at line 1."));
+            assert_eq!(errors[0].msg, String::from("Unrecognized character \"^\""));
         }
     }
 }

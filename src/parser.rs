@@ -7,6 +7,7 @@ use crate::token_kinds::TokenKind;
 
 
 /// The Parser is responsible for taking a list of tokens and turning them into an AST.
+/// It reports (doesn't return) any errors that occur during parsing.
 ///
 /// ## Grammar:
 /// * expression        → equality ;

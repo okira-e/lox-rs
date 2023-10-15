@@ -88,7 +88,5 @@ fn pretty_print(expr: &Box<dyn Expr>) {
 
 /// Report a compiler error.
 pub fn report_error(err: &CompilerError) {
-    let err_msg = &format!("at line {}", err.line);
-
-    println!("{} {}.", err.msg, err_msg);
+    println!("{} at line {}.", err.msg, err.line);
 }
