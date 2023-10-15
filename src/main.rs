@@ -14,6 +14,7 @@ mod language_errors;
 use std::io::Write;
 use std::{fs, io};
 use tokenizer::{Tokenizer};
+use crate::expressions::Expr;
 use crate::parser::Parser;
 
 fn main() {
@@ -73,9 +74,20 @@ fn run(input: &str) {
         return;
     }
 
-    for token in tokens {
-        println!("{}", token.to_string());
-    }
+    let mut parser = Parser::new(tokens);
 
-    // let mut parser = Parser::new(tokens);
+    match parser.parse() {
+        Ok(expr) => {
+            pretty_print(&expr);
+        },
+        Err(err) => {
+            err.iter().for_each(|err| {
+                println!("OKIRA: {}", err.message);
+            })
+        },
+    }
+}
+
+fn pretty_print(expr: &Box<dyn Expr>) {
+    println!("{expr}");
 }

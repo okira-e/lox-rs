@@ -32,11 +32,21 @@ impl<'a> Parser<'a> {
         };
     }
 
-    fn expression_rule(&mut self) -> Box<dyn Expr::<String>> {
+    pub fn parse(&mut self) -> Result<Box<dyn Expr>, &Vec<CompilerError>> {
+        let expr = self.expression_rule();
+
+        if !self.errors.is_empty() {
+            return Err(&self.errors);
+        }
+
+        return Ok(expr);
+    }
+
+    fn expression_rule(&mut self) -> Box<dyn Expr> {
         return self.equality_rule();
     }
 
-    fn equality_rule(&mut self) -> Box<dyn Expr::<String>> {
+    fn equality_rule(&mut self) -> Box<dyn Expr> {
         let mut expr = self.comparison_rule();
 
         while self.peek().kind == TokenKind::BangEqual || self.peek().kind == TokenKind::EqualEqual {
@@ -52,7 +62,7 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
-    fn comparison_rule(&mut self) -> Box<dyn Expr::<String>> {
+    fn comparison_rule(&mut self) -> Box<dyn Expr> {
         let mut expr = self.term_rule();
 
         while self.peek().kind == TokenKind::Greater || self.peek().kind == TokenKind::GreaterEqual
@@ -70,7 +80,7 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
-    fn term_rule(&mut self) -> Box<dyn Expr::<String>> {
+    fn term_rule(&mut self) -> Box<dyn Expr> {
         let mut expr = self.factor_rule();
 
         while self.peek().kind == TokenKind::Minus || self.peek().kind == TokenKind::Plus {
@@ -86,7 +96,7 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
-    fn factor_rule(&mut self) -> Box<dyn Expr::<String>> {
+    fn factor_rule(&mut self) -> Box<dyn Expr> {
         let mut expr = self.unary_rule();
 
         while self.peek().kind == TokenKind::Slash || self.peek().kind == TokenKind::Star {
@@ -102,7 +112,7 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
-    fn unary_rule(&mut self) -> Box<dyn Expr::<String>> {
+    fn unary_rule(&mut self) -> Box<dyn Expr> {
         // TODO: This currently doesn't support multiple unary operators in a row like `!!true`.
         if self.peek().kind == TokenKind::Bang || self.peek().kind == TokenKind::Minus {
             self.advance();
@@ -118,7 +128,7 @@ impl<'a> Parser<'a> {
         return self.primary_rule();
     }
 
-    fn primary_rule(&mut self) -> Box<dyn Expr::<String>> {
+    fn primary_rule(&mut self) -> Box<dyn Expr> {
         if self.peek().kind == TokenKind::True {
             self.advance();
 
@@ -156,7 +166,7 @@ impl<'a> Parser<'a> {
 
             self.advance();
 
-            let expr: Box<dyn Expr<String>> = self.expression_rule();
+            let expr: Box<dyn Expr> = self.expression_rule();
 
             println!("{}", self.peek());
 
@@ -204,6 +214,30 @@ impl<'a> Parser<'a> {
         }
 
         return self.previous();
+    }
+
+    fn synchronise(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            if self.previous().kind == TokenKind::Semicolon {
+                return;
+            }
+
+            match self.peek().kind {
+                TokenKind::Class => {},
+                TokenKind::Fun => {},
+                TokenKind::Var => {},
+                TokenKind::For => {},
+                TokenKind::If => {},
+                TokenKind::While => {},
+                TokenKind::Print => {},
+                TokenKind::Return => {},
+                _ => {
+                    self.advance();
+                },
+            }
+        }
     }
 
     /// Checks if we are at the end of the token list.
