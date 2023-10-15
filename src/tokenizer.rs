@@ -29,7 +29,7 @@ impl<'a> Tokenizer<'a> {
         };
     }
 
-    /// scan_tokens scans the source code and returns a vector of tokens.
+    /// scans the source code for tokens.
     pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<CompilerError>) {
         while !self.is_at_end() {
             self.start_of_lexeme = self.current_char;
