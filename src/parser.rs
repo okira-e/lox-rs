@@ -312,6 +312,6 @@ mod tests {
 
         let expr = parser.expression_rule();
 
-        assert_eq!(expr.to_string(), "((* 123 45.67))");
+        assert_eq!(expr.print(), "((* 123 45.67))");
     }
 }
