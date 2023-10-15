@@ -81,7 +81,7 @@ impl Expr for GetExpression {}
 
 impl Display for GetExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self);
+        return write!(f, ".{} {}", self.object, self.name.lexeme);
     }
 }
 
@@ -153,7 +153,7 @@ impl Expr for SetExpression {}
 
 impl Display for SetExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self);
+        return write!(f, "={} {} {}", self.object, self.name.lexeme, self.name.lexeme);
     }
 }
 
@@ -171,7 +171,7 @@ impl Expr for SuperExpression {}
 
 impl<'a> Display for SuperExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self);
+        return write!(f, "super.{}", self.method.lexeme);
     }
 }
 
@@ -184,7 +184,7 @@ impl Expr for SelfExpression {}
 
 impl<'a> Display for SelfExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self);
+        return write!(f, "self");
     }
 }
 
@@ -220,7 +220,7 @@ impl Expr for VariableExpression {}
 
 impl<'a> Display for VariableExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", self);
+        return write!(f, "{}", self.name.lexeme);
     }
 }
 
