@@ -168,7 +168,7 @@ impl<'a> Parser<'a> {
             if self.peek().kind != TokenKind::RightParen {
                 report_error(
                     &CompilerError::new(
-                        format!("Expected ')' after expression"),
+                        "Expected ')' after expression".into(),
                         self.peek().line,
                         self.peek().column,
                         None,
@@ -186,7 +186,7 @@ impl<'a> Parser<'a> {
         } else {
             report_error(
                 &CompilerError::new(
-                    format!("Expected expression"),
+                    "Expected expression".into(),
                     self.peek().line,
                     self.peek().column,
                     None,
