@@ -1,210 +1,117 @@
-
-use std::fmt::{Debug, Display};
 use crate::literal_types::Literal;
 use crate::token::Token;
 
 /// A trait that represents an expression in the AST.
-pub trait Expr: Debug {
-    fn print(&self) -> String;
+#[derive(Debug, PartialEq)]
+pub enum Expr {
+    /// Assign expressions are expressions that assign a value to a variable.
+    /// ## Example
+    /// ```
+    /// var x = 1;
+    /// ```
+    AssignExpression {
+        name: Token,
+        value: Box<Expr>,
+    },
+    /// Binary expressions are expressions that have a left and right side, and an operator in between.
+    /// ## Example
+    /// ```
+    /// 1 + 2
+    /// ```
+    BinaryExpression {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
+    },
+    /// Call expressions are expressions that call a function.
+    /// ## Example
+    /// ```
+    /// a_function();
+    CallExpression {
+        callee: Box<Expr>,
+        paren: Token,
+        arguments: Vec<Box<Expr>>,
+    },
+    /// Get expressions are expressions that get a property from an object
+    /// ## Example
+    /// ```
+    /// object.property
+    /// ```
+    GetExpression {
+        object: Box<Expr>,
+        name: Token,
+    },
+    /// Grouping expressions are expressions that group other expressions together.
+    /// ## Example
+    /// ```
+    /// (1 + 2)
+    /// ```
+    GroupingExpression {
+        expression: Box<Expr>,
+    },
+    /// Literal expressions are expressions that are literals.
+    /// ## Example
+    /// ```
+    /// 1
+    /// ```
+    LiteralExpression {
+        value: Option<Literal>,
+    },
+    /// Logical expressions are expressions that are logical.
+    /// ## Example
+    /// ```
+    /// true and false
+    /// ```
+    LogicalExpression {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
+    },
+    /// Set expressions are expressions that set a property on an object.
+    /// ## Example
+    /// ```
+    /// object.property = 1;
+    /// ```
+    SetExpression {
+        object: Box<Expr>,
+        name: Token,
+        value: Box<Expr>,
+    },
+    /// Super expressions are expressions that call a method on the superclass.
+    /// ## Example
+    /// ```
+    /// super.method();
+    /// ```
+    SuperExpression {
+        keyword: Token,
+        method: Token,
+    },
+    /// Self expressions are expressions that call a method on the current class.
+    /// ## Example
+    /// ```
+    /// self.method();
+    /// ```
+    SelfExpression {
+        keyword: Token,
+    },
+    /// Unary expressions are expressions that have a single side and an operator.
+    /// ## Example
+    /// ```
+    /// !true
+    /// ```
+    UnaryExpression {
+        operator: Token,
+        right: Box<Expr>,
+    },
+    /// Variable expressions are expressions that are variables.
+    /// ## Example
+    /// ```
+    /// var x = 1;
+    /// ```
+    VariableExpression {
+        name: Token,
+    },
 }
-
-/// Assign expressions are expressions that assign a value to a variable.
-/// ## Example
-/// ```
-/// var x = 1;
-/// ```
-#[derive(Debug)]
-pub struct AssignExpression {
-    pub name: Token,
-    pub value: Box<dyn Expr>,
-}
-
-impl Expr for AssignExpression {
-    fn print(&self) -> String {
-        return format!("={} {}", self.name.lexeme, self.value.print());
-    }
-}
-
-/// Binary expressions are expressions that have a left and right side, and an operator in between.
-/// ## Example
-/// ```
-/// 1 + 2
-/// ```
-#[derive(Debug)]
-pub struct BinaryExpression {
-    pub left: Box<dyn Expr>,
-    pub operator: Token,
-    pub right: Box<dyn Expr>,
-}
-impl Expr for BinaryExpression {
-    fn print(&self) -> String {
-        return format!("({} {} {})", self.operator.lexeme, self.left.print(), self.right.print());
-    }
-}
-
-/// Call expressions are expressions that call a function.
-/// ## Example
-/// ```
-/// a_function();
-/// ```
-#[derive(Debug)]
-pub struct CallExpression {
-    pub callee: Box<dyn Expr>,
-    pub paren: Token,
-    pub arguments: Vec<Box<dyn Expr>>,
-}
-impl Expr for CallExpression {
-    fn print(&self) -> String {
-        return format!("call {} with {:?}", self.callee.print(), self.arguments);
-    }
-}
-
-/// Get expressions are expressions that get a property from an object
-/// ## Example
-/// ```
-/// object.property
-/// ```
-#[derive(Debug)]
-pub struct GetExpression {
-    pub object: Box<dyn Expr>,
-    pub name: Token,
-}
-impl Expr for GetExpression {
-    fn print(&self) -> String {
-        return format!(".{} {}", self.object.print(), self.name.lexeme);
-    }
-}
-
-
-/// Grouping expressions are expressions that group other expressions together.
-/// ## Example
-/// ```
-/// (1 + 2)
-/// ```
-#[derive(Debug)]
-pub struct GroupingExpression {
-    pub expression: Box<dyn Expr>,
-}
-impl Expr for GroupingExpression {
-    fn print(&self) -> String {
-        return format!("({})", self.expression.print());
-    }
-}
-
-
-/// Literal expressions are expressions that are literals.
-/// ## Example
-/// ```
-/// 1
-/// ```
-#[derive(Debug)]
-pub struct LiteralExpression {
-    pub value: Option<Literal>,
-}
-impl Expr for LiteralExpression {
-    fn print(&self) -> String {
-        return format!("{}", self.value.clone().unwrap_or(Literal::Nil));
-    }
-}
-
-
-/// Logical expressions are expressions that are logical.
-/// ## Example
-/// ```
-/// true and false
-/// ```
-#[derive(Debug)]
-pub struct LogicalExpression {
-    pub left: Box<dyn Expr>,
-    pub operator: Token,
-    pub right: Box<dyn Expr>,
-}
-impl Expr for LogicalExpression {
-    fn print(&self) -> String {
-        return format!("{} {} {}", self.operator.lexeme, self.right.print(), self.left.print());
-    }
-}
-
-
-/// Set expressions are expressions that set a property on an object.
-/// ## Example
-/// ```
-/// object.property = 1;
-/// ```
-#[derive(Debug)]
-pub struct SetExpression {
-    pub object: Box<dyn Expr>,
-    pub name: Token,
-    pub value: Box<dyn Expr>,
-}
-impl Expr for SetExpression {
-    fn print(&self) -> String {
-        return format!("={} {} {}", self.object.print(), self.name.lexeme, self.name.lexeme);
-    }
-}
-
-
-/// Super expressions are expressions that call a method on the superclass.
-/// ## Example
-/// ```
-/// super.method();
-/// ```
-#[derive(Debug)]
-pub struct SuperExpression {
-    pub keyword: Token,
-    pub method: Token,
-}
-impl Expr for SuperExpression {
-    fn print(&self) -> String {
-        return format!("super.{}", self.method.lexeme);
-    }
-}
-
-
-/// Self expressions are expressions that call a method on the current class.
-#[derive(Debug)]
-pub struct SelfExpression {
-    pub keyword: Token,
-}
-impl Expr for SelfExpression {
-    fn print(&self) -> String {
-        return format!("self");
-    }
-}
-
-
-/// Unary expressions are expressions that have a single side and an operator.
-/// ## Example
-/// ```
-/// !true
-/// ```
-#[derive(Debug)]
-pub struct UnaryExpression {
-    pub operator: Token,
-    pub right: Box<dyn Expr>,
-}
-impl Expr for UnaryExpression {
-    fn print(&self) -> String {
-        return format!("({} {})", self.operator.lexeme, self.right.print());
-    }
-}
-
-
-/// Variable expressions are expressions that are variables.
-/// ## Example
-/// ```
-/// var x = 1;
-/// ```
-#[derive(Debug)]
-pub struct VariableExpression {
-    pub name: Token,
-}
-impl Expr for VariableExpression {
-    fn print(&self) -> String {
-        return format!("{}", self.name.lexeme);
-    }
-}
-
 
 
 // use std::fmt::{Debug, Display};

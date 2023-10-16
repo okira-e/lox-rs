@@ -14,8 +14,8 @@ mod compiler_error;
 use std::io::Write;
 use std::{fs, io};
 use tokenizer::{Tokenizer};
+use crate::ast_printer::{print_ast};
 use crate::compiler_error::CompilerError;
-use crate::expressions::Expr;
 use crate::parser::Parser;
 
 fn main() {
@@ -76,14 +76,9 @@ fn run(input: &str) {
 
     let mut parser = Parser::new(tokens);
 
-    let expr = parser.parse();
+    let ast = parser.parse();
 
-    pretty_print(&expr);
-}
-
-/// Pretty print the AST to stdout.
-fn pretty_print(expr: &Box<dyn Expr>) {
-    println!("{}", expr.print());
+    println!("AST: {}", print_ast(&ast));
 }
 
 /// Report a compiler error.

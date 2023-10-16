@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// An enum that represents the type of a literal. It's used to determine how to
 /// parse the literal.
 pub enum Literal {

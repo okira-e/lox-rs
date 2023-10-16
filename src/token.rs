@@ -3,7 +3,7 @@ use crate::token_kinds::TokenKind;
 use crate::literal_types::Literal;
 
 /// Token is a struct that represents a token in a source file.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     /// The actual text of the token. Can be the variable name for identifiers.

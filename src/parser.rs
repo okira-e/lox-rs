@@ -1,4 +1,4 @@
-use crate::expressions::{BinaryExpression, Expr, GroupingExpression, LiteralExpression, UnaryExpression};
+use crate::expressions::{Expr};
 use crate::compiler_error::CompilerError;
 use crate::literal_types::Literal;
 use crate::report_error;
@@ -32,21 +32,21 @@ impl<'a> Parser<'a> {
         };
     }
 
-    pub fn parse(&mut self) -> Box<dyn Expr> {
+    pub fn parse(&mut self) -> Box<Expr> {
         return self.expression_rule();
     }
 
-    fn expression_rule(&mut self) -> Box<dyn Expr> {
+    fn expression_rule(&mut self) -> Box<Expr> {
         return self.equality_rule();
     }
 
-    fn equality_rule(&mut self) -> Box<dyn Expr> {
+    fn equality_rule(&mut self) -> Box<Expr> {
         let mut expr = self.comparison_rule();
 
         while self.peek().kind == TokenKind::BangEqual || self.peek().kind == TokenKind::EqualEqual {
             self.advance();
 
-            expr = Box::new(BinaryExpression {
+            expr = Box::new(Expr::BinaryExpression {
                 left: expr,
                 operator: self.previous().clone(),
                 right: self.comparison_rule(),
@@ -56,7 +56,7 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
-    fn comparison_rule(&mut self) -> Box<dyn Expr> {
+    fn comparison_rule(&mut self) -> Box<Expr> {
         let mut expr = self.term_rule();
 
         while self.peek().kind == TokenKind::Greater || self.peek().kind == TokenKind::GreaterEqual
@@ -64,7 +64,7 @@ impl<'a> Parser<'a> {
         {
             self.advance();
 
-            expr = Box::new(BinaryExpression {
+            expr = Box::new(Expr::BinaryExpression {
                 left: expr,
                 operator: self.previous().clone(),
                 right: self.term_rule(),
@@ -74,13 +74,13 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
-    fn term_rule(&mut self) -> Box<dyn Expr> {
+    fn term_rule(&mut self) -> Box<Expr> {
         let mut expr = self.factor_rule();
 
         while self.peek().kind == TokenKind::Minus || self.peek().kind == TokenKind::Plus {
             self.advance();
 
-            expr = Box::new(BinaryExpression {
+            expr = Box::new(Expr::BinaryExpression {
                 left: expr,
                 operator: self.previous().clone(),
                 right: self.factor_rule(),
@@ -90,13 +90,13 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
-    fn factor_rule(&mut self) -> Box<dyn Expr> {
+    fn factor_rule(&mut self) -> Box<Expr> {
         let mut expr = self.unary_rule();
 
         while self.peek().kind == TokenKind::Slash || self.peek().kind == TokenKind::Star {
             self.advance();
 
-            expr = Box::new(BinaryExpression {
+            expr = Box::new(Expr::BinaryExpression {
                 left: expr,
                 operator: self.previous().clone(),
                 right: self.unary_rule(),
@@ -106,12 +106,12 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
-    fn unary_rule(&mut self) -> Box<dyn Expr> {
+    fn unary_rule(&mut self) -> Box<Expr> {
         // TODO: This currently doesn't support multiple unary operators in a row like `!!true`.
         if self.peek().kind == TokenKind::Bang || self.peek().kind == TokenKind::Minus {
             self.advance();
 
-            let expr = Box::new(UnaryExpression {
+            let expr = Box::new(Expr::UnaryExpression {
                 operator: self.previous().clone(),
                 right: self.unary_rule(),
             });
@@ -122,12 +122,12 @@ impl<'a> Parser<'a> {
         return self.primary_rule();
     }
 
-    fn primary_rule(&mut self) -> Box<dyn Expr> {
+    fn primary_rule(&mut self) -> Box<Expr> {
         return if self.peek().kind == TokenKind::True {
             self.advance();
 
             Box::new(
-                LiteralExpression {
+                Expr::LiteralExpression {
                     value: Some(Literal::Boolean(true)),
                 }
             )
@@ -135,7 +135,7 @@ impl<'a> Parser<'a> {
             self.advance();
 
             Box::new(
-                LiteralExpression {
+                Expr::LiteralExpression {
                     value: Some(Literal::Boolean(false)),
                 }
             )
@@ -143,7 +143,7 @@ impl<'a> Parser<'a> {
             self.advance();
 
             Box::new(
-                LiteralExpression {
+                Expr::LiteralExpression {
                     value: Some(Literal::Nil),
                 }
             )
@@ -151,7 +151,7 @@ impl<'a> Parser<'a> {
             self.advance();
 
             Box::new(
-                LiteralExpression {
+                Expr::LiteralExpression {
                     value: self.previous().literal.clone(),
                 }
             )
@@ -160,7 +160,7 @@ impl<'a> Parser<'a> {
 
             self.advance();
 
-            let expr: Box<dyn Expr> = self.expression_rule();
+            let expr: Box<Expr> = self.expression_rule();
 
             println!("{}", self.peek());
 
@@ -179,7 +179,7 @@ impl<'a> Parser<'a> {
             self.advance();
 
             Box::new(
-                GroupingExpression {
+                Expr::GroupingExpression {
                     expression: expr,
                 }
             )
@@ -194,11 +194,11 @@ impl<'a> Parser<'a> {
             );
 
             Box::new(
-                LiteralExpression {
+                Expr::LiteralExpression {
                     value: None,
                 }
             )
-        }
+        };
     }
 
     /// Get the next token and advance the current token.
@@ -219,17 +219,17 @@ impl<'a> Parser<'a> {
             }
 
             match self.peek().kind {
-                TokenKind::Class => {},
-                TokenKind::Fun => {},
-                TokenKind::Var => {},
-                TokenKind::For => {},
-                TokenKind::If => {},
-                TokenKind::While => {},
-                TokenKind::Print => {},
-                TokenKind::Return => {},
+                TokenKind::Class => {}
+                TokenKind::Fun => {}
+                TokenKind::Var => {}
+                TokenKind::For => {}
+                TokenKind::If => {}
+                TokenKind::While => {}
+                TokenKind::Print => {}
+                TokenKind::Return => {}
                 _ => {
                     self.advance();
-                },
+                }
             }
         }
     }
@@ -258,6 +258,7 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::expressions::Expr::GroupingExpression;
     use super::*;
     use crate::literal_types::Literal;
 
@@ -312,6 +313,33 @@ mod tests {
 
         let expr = parser.expression_rule();
 
-        assert_eq!(expr.print(), "((* 123 45.67))");
+        assert_eq!(
+            expr,
+            Box::new(
+                GroupingExpression {
+                    expression: Box::new(
+                        Expr::BinaryExpression {
+                            left: Box::new(
+                                Expr::LiteralExpression {
+                                    value: Some(Literal::Number(123.into())),
+                                }
+                            ),
+                            operator: Token {
+                                kind: TokenKind::Star,
+                                lexeme: "*".into(),
+                                line: 1,
+                                column: 2,
+                                literal: None,
+                            },
+                            right: Box::new(
+                                Expr::LiteralExpression {
+                                    value: Some(Literal::Number(45.67.into())),
+                                }
+                            ),
+                        }
+                    )
+                }
+            )
+        );
     }
 }
