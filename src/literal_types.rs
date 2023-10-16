@@ -16,7 +16,7 @@ impl Literal {
             Literal::Number(n) => n.to_string(),
             Literal::String(s) => s.to_string(),
             Literal::Boolean(b) => b.to_string(),
-            Literal::Nil => "None".into(),
+            Literal::Nil => "nil".into(),
         }
     }
 }
