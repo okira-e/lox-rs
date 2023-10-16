@@ -6,7 +6,8 @@ use crate::literal_types::Literal;
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
-    pub lexeme: String, // The actual text of the token. Can be the variable name for identifiers.
+    /// The actual text of the token. Can be the variable name for identifiers.
+    pub lexeme: String,
     pub line: usize,
     pub column: usize,
     pub literal: Option<Literal>,
