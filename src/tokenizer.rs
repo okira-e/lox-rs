@@ -180,7 +180,14 @@ impl<'a> Tokenizer<'a> {
                 } else if current_char.is_alphabetic() {
                     // Identify if the typed keyword is reserved or an identifier.
 
-                    while self.peek() != '\n' && self.peek() != ' ' && !self.is_at_end() {
+                    while !(
+                        self.peek() == '\n'
+                            || self.peek() == ' '
+                            || self.is_at_end()
+                            || self.peek() == '\t'
+                            || self.peek() == '(' // This is for function calls.
+                            || self.peek() == ')'
+                    ) {
                         self.advance();
                     }
 
@@ -273,8 +280,8 @@ impl<'a> Tokenizer<'a> {
     fn advance(&mut self) -> char {
         let char = self.source.chars().nth(self.current_char).unwrap_or_else(|| {
             println!("No character at index {}. Last read character was {}",
-                   self.current_char,
-                   self.source.chars().nth(self.current_char - 1).unwrap()
+                     self.current_char,
+                     self.source.chars().nth(self.current_char - 1).unwrap()
             );
             std::process::exit(1);
         });
