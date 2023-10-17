@@ -162,8 +162,6 @@ impl<'a> Parser<'a> {
 
             let expr: Box<Expr> = self.expression_rule();
 
-            println!("{}", self.peek());
-
             // Check if the next token is a closing parenthesis.
             if self.peek().kind != TokenKind::RightParen {
                 report_error(
