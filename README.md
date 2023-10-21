@@ -37,6 +37,9 @@ class Breakfast {
     }
 }
 ```
+## Current State of the Interpreter
+
+The Interpreter currently scans, parses, and evaluates expressions such as literals, grouping, unary, binary, and logical expressions.
 
 ## Getting Started
 
