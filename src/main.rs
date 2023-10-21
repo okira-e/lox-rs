@@ -1,21 +1,18 @@
 mod token;
 mod token_kinds;
 mod tokenizer;
-
-mod literal_types;
-
+mod literal;
 mod expressions;
-
 mod ast_printer;
-
 mod parser;
-mod compiler_error;
+mod language_error;
+mod interpreter;
 
 use std::io::Write;
 use std::{fs, io};
 use tokenizer::{Tokenizer};
 use crate::ast_printer::{print_ast};
-use crate::compiler_error::CompilerError;
+use crate::language_error::Error;
 use crate::parser::Parser;
 
 fn main() {
@@ -78,10 +75,17 @@ fn run(input: &str) {
 
     let ast = parser.parse();
 
-    println!("AST: {}", print_ast(&ast));
+    println!("\nAST: {}\n", print_ast(&ast));
+
+    interpreter::interpret(&ast);
 }
 
 /// Report a compiler error.
-pub fn report_error(err: &CompilerError) {
-    println!("{} at line {}.", err.msg, err.line);
+pub fn report_error(err: &Error) {
+    if let Some(line) = err.line {
+        println!("Found an error at line {}. {}", line, err.msg);
+    } else {
+        println!("{}", err.msg);
+    }
+
 }
