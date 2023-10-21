@@ -1,5 +1,5 @@
-use crate::compiler_error::CompilerError;
-use crate::literal_types::Literal;
+use crate::language_error::Error;
+use crate::literal::Literal;
 use crate::token::Token;
 use crate::token_kinds::TokenKind;
 
@@ -13,7 +13,7 @@ pub struct Tokenizer<'a> {
     line: usize,
     column: usize,
     // NOTE: Set but not currently used.
-    errors: Vec<CompilerError>,
+    errors: Vec<Error>,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -30,7 +30,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// scans the source code for tokens.
-    pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<CompilerError>) {
+    pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<Error>) {
         while !self.is_at_end() {
             self.start_of_lexeme = self.current_char;
             self.column = self.start_of_lexeme + 1;
@@ -127,9 +127,9 @@ impl<'a> Tokenizer<'a> {
                 // If we're at the end of the source code before a closing '"', add an error.
                 if self.peek() == '\n' || self.is_at_end() {
                     self.errors.push(
-                        CompilerError::new(
+                        Error::new(
                             "Unterminated string".into(),
-                            self.line,
+                            Some(self.line),
                             self.column,
                             None,
                         )
@@ -165,9 +165,9 @@ impl<'a> Tokenizer<'a> {
                     let value = self.source[self.start_of_lexeme..self.current_char].
                         parse::<f64>().unwrap_or_else(|err| {
                         self.errors.push(
-                            CompilerError::new(
+                            Error::new(
                                 format!("Error parsing number: {}", err),
-                                self.line,
+                                Some(self.line),
                                 self.column,
                                 None,
                             )
@@ -198,9 +198,9 @@ impl<'a> Tokenizer<'a> {
                     self.add_token(kind, None);
                 } else {
                     self.errors.push(
-                        CompilerError::new(
+                        Error::new(
                             format!("Unrecognized character \"{}\"", current_char),
-                            self.line,
+                            Some(self.line),
                             self.column,
                             None,
                         )
@@ -383,7 +383,7 @@ mod tests {
 
             assert_eq!(tokens.len(), 1);
             assert_eq!(errors.len(), 1);
-            assert_eq!(errors[0].line, 1);
+            assert_eq!(errors[0].line, Some(1));
         }
 
         #[test]
@@ -395,7 +395,7 @@ mod tests {
 
             assert_eq!(tokens.len(), 6);
             assert_eq!(errors.len(), 1);
-            assert_eq!(errors[0].line, 1);
+            assert_eq!(errors[0].line, Some(1));
         }
     }
 

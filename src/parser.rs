@@ -1,6 +1,6 @@
 use crate::expressions::{Expr};
-use crate::compiler_error::CompilerError;
-use crate::literal_types::Literal;
+use crate::language_error::Error;
+use crate::literal::Literal;
 use crate::report_error;
 use crate::token::Token;
 use crate::token_kinds::TokenKind;
@@ -165,9 +165,9 @@ impl<'a> Parser<'a> {
             // Check if the next token is a closing parenthesis.
             if self.peek().kind != TokenKind::RightParen {
                 report_error(
-                    &CompilerError::new(
+                    &Error::new(
                         "Expected ')' after expression".into(),
-                        self.peek().line,
+                        Some(self.peek().line),
                         self.peek().column,
                         None,
                     )
@@ -183,9 +183,9 @@ impl<'a> Parser<'a> {
             )
         } else {
             report_error(
-                &CompilerError::new(
+                &Error::new(
                     "Expected expression".into(),
-                    self.peek().line,
+                    Some(self.peek().line),
                     self.peek().column,
                     None,
                 )
@@ -258,7 +258,7 @@ impl<'a> Parser<'a> {
 mod tests {
     use crate::expressions::Expr::GroupingExpression;
     use super::*;
-    use crate::literal_types::Literal;
+    use crate::literal::Literal;
 
     #[test]
     fn test_parser() {
