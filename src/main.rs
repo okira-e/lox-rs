@@ -31,7 +31,7 @@ fn main() {
         1 => {
             run_prompt();
         }
-        _ => println!("Usage: pulsar <filename>"),
+        _ => println!("Usage: lox <filename>"),
     }
 }
 
