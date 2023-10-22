@@ -2,6 +2,7 @@ use crate::expressions::{Expr};
 use crate::language_error::Error;
 use crate::literal::Literal;
 use crate::report_error;
+use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_kinds::TokenKind;
 
@@ -10,18 +11,24 @@ use crate::token_kinds::TokenKind;
 /// It reports (doesn't return) any errors that occur during parsing.
 ///
 /// ## Grammar:
-/// * expression        → equality ;
-/// * equality          → comparison ( ( "!=" | "==" ) comparison )* ;
-/// * comparison        → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-/// * term              → factor ( ( "-" | "+" ) factor )* ;
-/// * factor            → unary ( ( "/" | "*" ) unary )* ;
-/// * unary             → ( "!" | "-" ) unary | primary ;
-/// * primary           → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+/// * program               → complete_statement* EOF ;
+/// * complete_statement    → statement ";" ;
+/// * statement             → exprStmt | printStmt ;
+/// * exprStmt              → expression ;
+/// * printStmt             → "print" expression ;
+/// * expression            → equality ;
+/// * equality              → comparison ( ( "!=" | "==" ) comparison )* ;
+/// * comparison            → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+/// * term                  → factor ( ( "-" | "+" ) factor )* ;
+/// * factor                → unary ( ( "/" | "*" ) unary )* ;
+/// * unary                 → ( "!" | "-" ) unary | primary ;
+/// * primary               → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
 ///
 /// Note: `(a)*` means 0 or more of a.
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
+    pub errors: Vec<Error>,
 }
 
 impl<'a> Parser<'a> {
@@ -29,21 +36,84 @@ impl<'a> Parser<'a> {
         return Parser {
             tokens,
             current: 0,
+            errors: Vec::new(),
         };
     }
 
-    pub fn parse(&mut self) -> Box<Expr> {
-        return self.expression_rule();
+    /// Parses the tokens into an AST. Reports any errors that occur during parsing and populates
+    /// the error list.
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements = Vec::<Stmt>::new();
+
+        while !self.is_at_end() {
+            statements.push(self.complete_statement_rule());
+        }
+
+        return statements;
     }
 
+    /// complete_statement → statement ";" ;
+    fn complete_statement_rule(&mut self) -> Stmt {
+        let stmt = self.statement_rule();
+
+        if self.tokens[self.current].kind == TokenKind::Semicolon {
+            self.advance();
+        } else {
+            let err = Error::new(
+                "Expected \";\" after statement".into(),
+                Some(self.previous().line),
+                self.tokens[self.current].column,
+                None,
+            );
+
+            report_error(&err);
+
+            self.errors.push(err);
+        }
+
+        return stmt;
+    }
+
+
+    /// statement → exprStmt | printStmt ;
+    fn statement_rule(&mut self) -> Stmt {
+        return if self.current_token().kind == TokenKind::Print {
+            self.print_statement_rule()
+        } else {
+            self.expression_statement_rule()
+        };
+    }
+
+    /// printStmt → "print" expression ;
+    fn print_statement_rule(&mut self) -> Stmt {
+        self.advance();
+
+        let value = self.expression_rule();
+
+        return Stmt::PrintStmt {
+            expression: value,
+        };
+    }
+
+    // exprStmt → expression ;
+    fn expression_statement_rule(&mut self) -> Stmt {
+        let expr = self.expression_rule();
+
+        return Stmt::ExpressionStmt {
+            expression: expr,
+        };
+    }
+
+    /// expression → equality ;
     fn expression_rule(&mut self) -> Box<Expr> {
         return self.equality_rule();
     }
 
+    /// equality → comparison ( ( "!=" | "==" ) comparison )* ;
     fn equality_rule(&mut self) -> Box<Expr> {
         let mut expr = self.comparison_rule();
 
-        while self.peek().kind == TokenKind::BangEqual || self.peek().kind == TokenKind::EqualEqual {
+        while self.tokens[self.current].kind == TokenKind::BangEqual || self.tokens[self.current].kind == TokenKind::EqualEqual {
             self.advance();
 
             expr = Box::new(Expr::BinaryExpression {
@@ -56,11 +126,12 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
+    /// comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
     fn comparison_rule(&mut self) -> Box<Expr> {
         let mut expr = self.term_rule();
 
-        while self.peek().kind == TokenKind::Greater || self.peek().kind == TokenKind::GreaterEqual
-            || self.peek().kind == TokenKind::Less || self.peek().kind == TokenKind::LessEqual
+        while self.tokens[self.current].kind == TokenKind::Greater || self.tokens[self.current].kind == TokenKind::GreaterEqual
+            || self.tokens[self.current].kind == TokenKind::Less || self.tokens[self.current].kind == TokenKind::LessEqual
         {
             self.advance();
 
@@ -74,10 +145,11 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
+    /// term → factor ( ( "-" | "+" ) factor )* ;
     fn term_rule(&mut self) -> Box<Expr> {
         let mut expr = self.factor_rule();
 
-        while self.peek().kind == TokenKind::Minus || self.peek().kind == TokenKind::Plus {
+        while self.tokens[self.current].kind == TokenKind::Minus || self.tokens[self.current].kind == TokenKind::Plus {
             self.advance();
 
             expr = Box::new(Expr::BinaryExpression {
@@ -90,10 +162,11 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
+    /// factor → unary ( ( "/" | "*" ) unary )* ;
     fn factor_rule(&mut self) -> Box<Expr> {
         let mut expr = self.unary_rule();
 
-        while self.peek().kind == TokenKind::Slash || self.peek().kind == TokenKind::Star {
+        while self.tokens[self.current].kind == TokenKind::Slash || self.tokens[self.current].kind == TokenKind::Star {
             self.advance();
 
             expr = Box::new(Expr::BinaryExpression {
@@ -106,9 +179,10 @@ impl<'a> Parser<'a> {
         return expr;
     }
 
+    /// unary → ( "!" | "-" ) unary | primary ;
     fn unary_rule(&mut self) -> Box<Expr> {
         // TODO: This currently doesn't support multiple unary operators in a row like `!!true`.
-        if self.peek().kind == TokenKind::Bang || self.peek().kind == TokenKind::Minus {
+        if self.tokens[self.current].kind == TokenKind::Bang || self.tokens[self.current].kind == TokenKind::Minus {
             self.advance();
 
             let expr = Box::new(Expr::UnaryExpression {
@@ -122,8 +196,9 @@ impl<'a> Parser<'a> {
         return self.primary_rule();
     }
 
+    /// primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
     fn primary_rule(&mut self) -> Box<Expr> {
-        return if self.peek().kind == TokenKind::True {
+        return if self.current_token().kind == TokenKind::True {
             self.advance();
 
             Box::new(
@@ -131,7 +206,7 @@ impl<'a> Parser<'a> {
                     value: Some(Literal::Boolean(true)),
                 }
             )
-        } else if self.peek().kind == TokenKind::False {
+        } else if self.current_token().kind == TokenKind::False {
             self.advance();
 
             Box::new(
@@ -139,7 +214,7 @@ impl<'a> Parser<'a> {
                     value: Some(Literal::Boolean(false)),
                 }
             )
-        } else if self.peek().kind == TokenKind::Nil {
+        } else if self.current_token().kind == TokenKind::Nil {
             self.advance();
 
             Box::new(
@@ -147,7 +222,7 @@ impl<'a> Parser<'a> {
                     value: Some(Literal::Nil),
                 }
             )
-        } else if self.peek().kind == TokenKind::String || self.peek().kind == TokenKind::Number {
+        } else if self.current_token().kind == TokenKind::String || self.current_token().kind == TokenKind::Number {
             self.advance();
 
             Box::new(
@@ -155,7 +230,7 @@ impl<'a> Parser<'a> {
                     value: self.previous().literal.clone(),
                 }
             )
-        } else if self.peek().kind == TokenKind::LeftParen {
+        } else if self.current_token().kind == TokenKind::LeftParen {
             // We don't capture any of the parentheses tokens. We only group the expression.
 
             self.advance();
@@ -163,15 +238,18 @@ impl<'a> Parser<'a> {
             let expr: Box<Expr> = self.expression_rule();
 
             // Check if the next token is a closing parenthesis.
-            if self.peek().kind != TokenKind::RightParen {
-                report_error(
-                    &Error::new(
-                        "Expected ')' after expression".into(),
-                        Some(self.peek().line),
-                        self.peek().column,
-                        None,
-                    )
+            if self.current_token().kind != TokenKind::RightParen {
+                let err = Error::new(
+                    "Expected \")\" after expression".into(),
+                    Some(self.current_token().line),
+                    self.current_token().column,
+                    None,
                 );
+
+
+                report_error(&err);
+
+                self.errors.push(err);
             }
 
             self.advance();
@@ -182,18 +260,22 @@ impl<'a> Parser<'a> {
                 }
             )
         } else {
-            report_error(
-                &Error::new(
-                    "Expected expression".into(),
-                    Some(self.peek().line),
-                    self.peek().column,
-                    None,
-                )
+            let err = Error::new(
+                "Unrecognised token".into(),
+                Some(self.current_token().line),
+                self.current_token().column,
+                None,
             );
+
+            report_error(&err);
+
+            self.errors.push(err);
+
+            self.advance();
 
             Box::new(
                 Expr::LiteralExpression {
-                    value: None,
+                    value: Some(Literal::Nil),
                 }
             )
         };
@@ -216,7 +298,7 @@ impl<'a> Parser<'a> {
                 return;
             }
 
-            match self.peek().kind {
+            match self.tokens[self.current].kind {
                 TokenKind::Class => {}
                 TokenKind::Fun => {}
                 TokenKind::Var => {}
@@ -234,11 +316,18 @@ impl<'a> Parser<'a> {
 
     /// Checks if we are at the end of the token list.
     fn is_at_end(&self) -> bool {
-        return self.peek().kind == TokenKind::Eof;
+        return self.tokens[self.current].kind == TokenKind::Eof;
     }
 
     /// Get the next token without advancing the current token.
     fn peek(&self) -> &Token {
+        return self.tokens.get(self.current + 1).unwrap_or_else(|| {
+            println!("Error getting token at index {}", self.current + 1);
+            std::process::exit(1);
+        });
+    }
+
+    fn current_token(&self) -> &Token {
         return self.tokens.get(self.current).unwrap_or_else(|| {
             println!("Error getting token at index {}", self.current);
             std::process::exit(1);
