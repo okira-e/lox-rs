@@ -9,9 +9,9 @@ pub enum Stmt {
     PrintStmt {
         expression: Box<Expr>,
     },
-    VarStmt {
+    VarDeclStmt {
         name: Token,
-        initializer: Option<Box<Expr>>,
+        initializer: Expr,
     },
     BlockStmt {
         statements: Vec<Stmt>,
