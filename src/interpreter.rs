@@ -2,19 +2,76 @@ use crate::language_error::Error;
 use crate::expressions::{Expr};
 use crate::literal::Literal;
 use crate::report_error;
+use crate::stmt::Stmt;
 use crate::token_kinds::TokenKind;
 
-pub fn interpret(expr: &Expr) {
-    let result = evaluate(expr);
-
-    return match result {
-        Ok(result) => {
-            println!("{}", result.to_string());
-        }
-        Err(err) => {
+pub fn interpret(statements: &Vec<Stmt>) {
+    for statement in statements {
+        execute(statement).unwrap_or_else(|err| {
             report_error(&err);
+        });
+    }
+}
+
+fn execute(stmt: &Stmt) -> Result<(), Error> {
+    match stmt {
+        Stmt::BlockStmt {
+            statements,
+        } => {
+            todo!();
         }
-    };
+        Stmt::ClassStmt {
+            methods,
+            name,
+            superclass,
+        } => {
+            todo!();
+        }
+        Stmt::ExpressionStmt {
+            expression,
+        } => {
+            evaluate(expression)?;
+        }
+        Stmt::FunctionStmt {
+            name,
+            params,
+            body,
+        } => {
+            todo!();
+        }
+        Stmt::IfStmt {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            todo!();
+        }
+        Stmt::PrintStmt {
+            expression,
+        } => {
+            println!("{}", evaluate(expression)?.to_string());
+        }
+        Stmt::ReturnStmt {
+            keyword,
+            value,
+        } => {
+            todo!();
+        }
+        Stmt::VarStmt {
+            name,
+            initializer,
+        } => {
+            todo!();
+        }
+        Stmt::WhileStmt {
+            condition,
+            body,
+        } => {
+            todo!();
+        }
+    }
+
+    Ok(())
 }
 
 /// Evaluates the given expression.

@@ -7,6 +7,7 @@ mod ast_printer;
 mod parser;
 mod language_error;
 mod interpreter;
+mod stmt;
 
 use std::io::Write;
 use std::{fs, io};
@@ -32,15 +33,22 @@ fn main() {
     }
 }
 
+enum RunMode {
+    File,
+    Prompt,
+}
+
+/// Run a source file.
 pub fn run_file(file_name: &String) {
     let content = fs::read_to_string(file_name).unwrap_or_else(|err| {
         println!("Error reading source file: {}", err);
         std::process::exit(1);
     });
 
-    run(content.as_str());
+    run(content.as_str(), RunMode::File);
 }
 
+/// Run the REPL.
 pub fn run_prompt() {
     loop {
         print!("Lox> ");
@@ -55,29 +63,43 @@ pub fn run_prompt() {
             std::process::exit(1);
         });
 
-        run(input.as_str());
+        run(input.as_str(), RunMode::Prompt);
     }
 }
 
-fn run(input: &str) {
+fn run(input: &str, run_mode: RunMode) {
     let mut tokenizer = Tokenizer::new(input);
-    let (tokens, errors) = tokenizer.scan_tokens();
+    let (tokens, tokenizer_errors) = tokenizer.scan_tokens();
 
-    if errors.len() > 0 {
-        for err in errors {
+    if tokenizer_errors.len() > 0 {
+        for err in tokenizer_errors {
             report_error(err);
         }
 
-        std::process::exit(1);
+        std::process::exit(70);
     }
 
     let mut parser = Parser::new(tokens);
+    let statements = parser.parse();
 
-    let ast = parser.parse();
+    match run_mode {
+        RunMode::File => {
+            if parser.errors.len() != 0 {
+                std::process::exit(1);
+            }
+        }
+        RunMode::Prompt => {
+            if parser.errors.len() != 0 {
+                return;
+            }
+        }
+    }
 
-    println!("\nAST: {}\n", print_ast(&ast));
+    // for statement in statements {
+    //     println!("\nAST: {}\n", print_ast(&statement));
+    // }
 
-    interpreter::interpret(&ast);
+    interpreter::interpret(&statements);
 }
 
 /// Report a compiler error.
@@ -87,5 +109,4 @@ pub fn report_error(err: &Error) {
     } else {
         println!("{}", err.msg);
     }
-
 }
