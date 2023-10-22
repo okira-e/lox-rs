@@ -108,7 +108,7 @@ pub enum Expr {
     /// ```
     /// var x = 1;
     /// ```
-    VariableExpression {
+    VarDeclExpression {
         name: Token,
     },
 }
