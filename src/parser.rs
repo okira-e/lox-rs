@@ -82,7 +82,7 @@ impl<'a> Parser<'a> {
         };
     }
 
-    fn var_declaration_rule(&mut self) -> Stmt { // var = 1;
+    fn var_declaration_rule(&mut self) -> Stmt {
         self.advance(); // current is variable name.
 
         if self.current_token().kind != TokenKind::Identifier {
