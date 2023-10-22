@@ -1,3 +1,11 @@
+use std::{fs, io};
+use std::io::Write;
+
+use tokenizer::Tokenizer;
+
+use crate::language_error::Error;
+use crate::parser::Parser;
+
 mod token;
 mod token_kinds;
 mod tokenizer;
@@ -8,13 +16,6 @@ mod parser;
 mod language_error;
 mod interpreter;
 mod stmt;
-
-use std::io::Write;
-use std::{fs, io};
-use tokenizer::{Tokenizer};
-use crate::ast_printer::{print_ast};
-use crate::language_error::Error;
-use crate::parser::Parser;
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
