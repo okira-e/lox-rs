@@ -187,6 +187,11 @@ impl<'a> Tokenizer<'a> {
                             || self.peek() == '\t'
                             || self.peek() == '(' // This is for function calls.
                             || self.peek() == ')'
+                            || self.peek() == '{' // For names before scopes and blocks.
+                            || self.peek() == '}'
+                            || self.peek() == ','
+                            || self.peek() == '.'
+                            || self.peek() == ';'
                     ) {
                         self.advance();
                     }
