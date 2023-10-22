@@ -78,7 +78,7 @@ fn print_expr(expr: &Expr) -> String {
         } => {
             format!("({} {})", operator.lexeme, print_expr(right))
         }
-        Expr::VariableExpression {
+        Expr::VarDeclExpression {
             name,
         } => {
             format!("{}", name.lexeme)
