@@ -37,9 +37,10 @@ class Breakfast {
     }
 }
 ```
-## Current State of the Interpreter
+## Current State
 
-The Interpreter currently scans, parses, and evaluates expressions such as literals, grouping, unary, binary, and logical expressions.
+The Interpreter currently scans, parses, and evaluates expressions as statements with printing. A working example can 
+be found here: [./lox/main.lox](./lox/main.lox)
 
 ## Getting Started
 
