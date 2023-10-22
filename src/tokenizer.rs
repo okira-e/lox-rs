@@ -328,7 +328,7 @@ mod tests {
     mod scanning {
         use super::*;
 
-        // Keep in mind that the tokenizer adds an EOF token to the end of the tokens vector.
+// Keep in mind that the tokenizer adds an EOF token to the end of the tokens vector.
 
         #[test]
         fn scan_tokens() {

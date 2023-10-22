@@ -1,6 +1,7 @@
 use std::fmt::Display;
-use crate::token_kinds::TokenKind;
+
 use crate::literal::Literal;
+use crate::token_kinds::TokenKind;
 
 /// Token is a struct that represents a token in a source file.
 #[derive(Debug, Clone, PartialEq)]

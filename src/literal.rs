@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::fmt::{Display, format};
+use std::fmt::Display;
 
 #[derive(Debug, Clone, PartialEq)]
 /// An enum that represents the type of a literal. It's used to determine how to
@@ -107,7 +107,7 @@ impl std::ops::Div for Literal {
                         }
 
                         return Ok(Literal::Number(left / right));
-                    },
+                    }
                     _ => Err(invalid_types_err_msg),
                 };
             }

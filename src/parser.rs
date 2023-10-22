@@ -1,11 +1,10 @@
-use crate::expressions::{Expr};
+use crate::expressions::Expr;
 use crate::language_error::Error;
 use crate::literal::Literal;
 use crate::report_error;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_kinds::TokenKind;
-
 
 /// The Parser is responsible for taking a list of tokens and turning them into an AST.
 /// It reports (doesn't return) any errors that occur during parsing.
@@ -345,10 +344,10 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::os::linux::raw::stat;
     use crate::expressions::Expr::GroupingExpression;
-    use super::*;
     use crate::literal::Literal;
+
+    use super::*;
 
     #[test]
     fn test_parser() {
