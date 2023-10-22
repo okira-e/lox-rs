@@ -1,20 +1,44 @@
+use std::collections::HashMap;
+use crate::expressions::Expr;
 use crate::language_error::Error;
-use crate::expressions::{Expr};
 use crate::literal::Literal;
 use crate::report_error;
 use crate::stmt::Stmt;
 use crate::token_kinds::TokenKind;
 
 pub fn interpret(statements: &Vec<Stmt>) {
+
+    let mut env = HashMap::<&str, Literal>::new();
+
     for statement in statements {
-        execute(statement).unwrap_or_else(|err| {
+        execute(statement, &mut env).unwrap_or_else(|err| {
             report_error(&err);
         });
     }
 }
 
-fn execute(stmt: &Stmt) -> Result<(), Error> {
+/// Executes the given statement.
+fn execute<'a>(stmt: &'a Stmt, env: &mut HashMap::<&'a str, Literal>) -> Result<(), Error> {
     match stmt {
+        Stmt::VarDeclStmt {
+            name,
+            initializer,
+        } => {
+            let value = evaluate(initializer)?;
+
+            if env.contains_key(name.lexeme.as_str()) {
+                return Err(
+                    Error {
+                        msg: format!("Variable \"{}\" already declared.", name.lexeme),
+                        line: Some(name.line),
+                        column: 0,
+                        hint: None,
+                    }
+                );
+            }
+
+            env.insert(name.lexeme.as_str(), value);
+        },
         Stmt::BlockStmt {
             statements,
         } => {
@@ -57,7 +81,7 @@ fn execute(stmt: &Stmt) -> Result<(), Error> {
         } => {
             todo!();
         }
-        Stmt::VarStmt {
+        Stmt::VarDeclStmt {
             name,
             initializer,
         } => {
@@ -424,7 +448,7 @@ fn evaluate(expr: &Expr) -> Result<Literal, Error> {
                 _ => todo!("Handle error")
             };
         }
-        Expr::VariableExpression {
+        Expr::VarDeclExpression {
             name,
         } => {
             todo!();
@@ -436,6 +460,7 @@ fn evaluate(expr: &Expr) -> Result<Literal, Error> {
 #[cfg(test)]
 mod tests {
     use crate::token::Token;
+
     use super::*;
 
     #[test]
