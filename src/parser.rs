@@ -345,6 +345,7 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::os::linux::raw::stat;
     use crate::expressions::Expr::GroupingExpression;
     use super::*;
     use crate::literal::Literal;
@@ -388,6 +389,13 @@ mod tests {
                 literal: None,
             },
             Token {
+                kind: TokenKind::Semicolon,
+                lexeme: ";".into(),
+                line: 1,
+                column: 0,
+                literal: None,
+            },
+            Token {
                 kind: TokenKind::Eof,
                 lexeme: "".into(),
                 line: 1,
@@ -398,35 +406,37 @@ mod tests {
 
         let mut parser = Parser::new(&tokens);
 
-        let expr = parser.expression_rule();
+        let statements = parser.parse();
 
         assert_eq!(
-            expr,
-            Box::new(
-                GroupingExpression {
-                    expression: Box::new(
-                        Expr::BinaryExpression {
-                            left: Box::new(
-                                Expr::LiteralExpression {
-                                    value: Some(Literal::Number(123.into())),
-                                }
-                            ),
-                            operator: Token {
-                                kind: TokenKind::Star,
-                                lexeme: "*".into(),
-                                line: 1,
-                                column: 2,
-                                literal: None,
-                            },
-                            right: Box::new(
-                                Expr::LiteralExpression {
-                                    value: Some(Literal::Number(45.67.into())),
-                                }
-                            ),
-                        }
-                    )
-                }
-            )
+            statements[0],
+            Stmt::ExpressionStmt {
+                expression: Box::new(
+                    GroupingExpression {
+                        expression: Box::new(
+                            Expr::BinaryExpression {
+                                left: Box::new(
+                                    Expr::LiteralExpression {
+                                        value: Some(Literal::Number(123.into())),
+                                    }
+                                ),
+                                operator: Token {
+                                    kind: TokenKind::Star,
+                                    lexeme: "*".into(),
+                                    line: 1,
+                                    column: 2,
+                                    literal: None,
+                                },
+                                right: Box::new(
+                                    Expr::LiteralExpression {
+                                        value: Some(Literal::Number(45.67.into())),
+                                    }
+                                ),
+                            }
+                        ),
+                    }
+                )
+            }
         );
     }
 }
