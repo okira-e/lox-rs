@@ -40,7 +40,7 @@ class Breakfast {
 ## Current State
 
 The Interpreter currently scans, parses, and evaluates expressions as statements with printing. A working example can 
-be found here: [./lox/main.lox](./lox/main.lox)
+be found here: [./lox/dev.lox](./lox/dev.lox)
 
 ## Getting Started
 
