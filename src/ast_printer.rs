@@ -83,6 +83,11 @@ fn print_expr(expr: &Expr) -> String {
         } => {
             format!("{}", name.lexeme)
         }
+        Expr::VariableResolutionExpression {
+            name,
+        } => {
+            format!("{}", name.lexeme)
+        }
     };
 }
 

@@ -1,3 +1,5 @@
-var my_name = Johnny;
+var a = 5;
 
-print 2 > 5;
+var b = 7;
+
+print (a + 3) > b;

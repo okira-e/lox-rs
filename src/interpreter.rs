@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::Write;
 use crate::expressions::Expr;
 use crate::language_error::Error;
 use crate::literal::Literal;
@@ -7,7 +8,6 @@ use crate::stmt::Stmt;
 use crate::token_kinds::TokenKind;
 
 pub fn interpret(statements: &Vec<Stmt>) {
-
     let mut env = HashMap::<&str, Literal>::new();
 
     for statement in statements {
@@ -24,7 +24,7 @@ fn execute<'a>(stmt: &'a Stmt, env: &mut HashMap::<&'a str, Literal>) -> Result<
             name,
             initializer,
         } => {
-            let value = evaluate(initializer)?;
+            let value = evaluate(initializer, env)?;
 
             if env.contains_key(name.lexeme.as_str()) {
                 return Err(
@@ -38,7 +38,7 @@ fn execute<'a>(stmt: &'a Stmt, env: &mut HashMap::<&'a str, Literal>) -> Result<
             }
 
             env.insert(name.lexeme.as_str(), value);
-        },
+        }
         Stmt::BlockStmt {
             statements,
         } => {
@@ -54,7 +54,7 @@ fn execute<'a>(stmt: &'a Stmt, env: &mut HashMap::<&'a str, Literal>) -> Result<
         Stmt::ExpressionStmt {
             expression,
         } => {
-            evaluate(expression)?;
+            evaluate(expression, env)?;
         }
         Stmt::FunctionStmt {
             name,
@@ -73,17 +73,26 @@ fn execute<'a>(stmt: &'a Stmt, env: &mut HashMap::<&'a str, Literal>) -> Result<
         Stmt::PrintStmt {
             expression,
         } => {
-            println!("{}", evaluate(expression)?.to_string());
+            let mut stdout = std::io::stdout();
+
+            let err = stdout.write(format!("{}", evaluate(expression, env)?.to_string()).as_ref());
+            return match err {
+                Ok(_) => Ok(()),
+                Err(_) => {
+                    return Err(
+                        Error {
+                            msg: format!("Error writing to stdout"),
+                            line: None,
+                            column: 0,
+                            hint: None,
+                        }
+                    );
+                }
+            };
         }
         Stmt::ReturnStmt {
             keyword,
             value,
-        } => {
-            todo!();
-        }
-        Stmt::VarDeclStmt {
-            name,
-            initializer,
         } => {
             todo!();
         }
@@ -99,7 +108,7 @@ fn execute<'a>(stmt: &'a Stmt, env: &mut HashMap::<&'a str, Literal>) -> Result<
 }
 
 /// Evaluates the given expression.
-fn evaluate(expr: &Expr) -> Result<Literal, Error> {
+fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Literal, Error> {
     match expr {
         Expr::AssignExpression {
             name,
@@ -112,8 +121,8 @@ fn evaluate(expr: &Expr) -> Result<Literal, Error> {
             operator,
             right,
         } => {
-            let left = evaluate(left);
-            let right = evaluate(right);
+            let left = evaluate(left, env);
+            let right = evaluate(right, env);
 
             return match operator.kind {
                 TokenKind::Plus => {
@@ -358,6 +367,19 @@ fn evaluate(expr: &Expr) -> Result<Literal, Error> {
                 _ => todo!("Handle error")
             };
         }
+        Expr::VariableResolutionExpression {
+            name,
+        } => {
+            return match env.get(name.lexeme.as_str()) {
+                Some(value) => Ok(value.clone()),
+                None => Err(Error {
+                    msg: format!("Undefined variable \"{}\".", name.lexeme),
+                    line: Some(name.line),
+                    column: 0,
+                    hint: None,
+                })
+            };
+        }
         Expr::CallExpression {
             arguments,
             callee,
@@ -374,7 +396,7 @@ fn evaluate(expr: &Expr) -> Result<Literal, Error> {
         Expr::GroupingExpression {
             expression,
         } => {
-            return evaluate(expression);
+            return evaluate(expression, env);
         }
         Expr::LiteralExpression {
             value,
@@ -418,7 +440,7 @@ fn evaluate(expr: &Expr) -> Result<Literal, Error> {
             operator,
             right,
         } => {
-            let interpreted_right = evaluate(right);
+            let interpreted_right = evaluate(right, env);
 
             return match operator.kind {
                 TokenKind::Minus => {
@@ -463,219 +485,249 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn binary_expressions() {
-        let expr = Expr::BinaryExpression {
-            left: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(1.into())),
-            }),
-            operator: Token {
-                kind: TokenKind::Plus,
-                lexeme: "+".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(2.into())),
-            }),
-        };
+    mod evaluate_expressions_tests {
+        use super::*;
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Number(3.into()));
+        #[test]
+        fn binary_expressions() {
+            let expr = Expr::BinaryExpression {
+                left: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(1.into())),
+                }),
+                operator: Token {
+                    kind: TokenKind::Plus,
+                    lexeme: "+".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(2.into())),
+                }),
+            };
 
-        let expr = Expr::BinaryExpression {
-            left: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(1.into())),
-            }),
-            operator: Token {
-                kind: TokenKind::Minus,
-                lexeme: "-".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(2.into())),
-            }),
-        };
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Number(3.into()));
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Number((-1).into()));
+            let expr = Expr::BinaryExpression {
+                left: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(1.into())),
+                }),
+                operator: Token {
+                    kind: TokenKind::Minus,
+                    lexeme: "-".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(2.into())),
+                }),
+            };
 
-        let expr = Expr::BinaryExpression {
-            left: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(10.into())),
-            }),
-            operator: Token {
-                kind: TokenKind::Star,
-                lexeme: "*".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(2.into())),
-            }),
-        };
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Number((-1).into()));
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Number(20.into()));
+            let expr = Expr::BinaryExpression {
+                left: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(10.into())),
+                }),
+                operator: Token {
+                    kind: TokenKind::Star,
+                    lexeme: "*".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(2.into())),
+                }),
+            };
 
-        let expr = Expr::BinaryExpression {
-            left: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(10.into())),
-            }),
-            operator: Token {
-                kind: TokenKind::Slash,
-                lexeme: "/".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(2.into())),
-            }),
-        };
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Number(20.into()));
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Number(5.into()));
+            let expr = Expr::BinaryExpression {
+                left: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(10.into())),
+                }),
+                operator: Token {
+                    kind: TokenKind::Slash,
+                    lexeme: "/".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(2.into())),
+                }),
+            };
 
-        let expr = Expr::BinaryExpression {
-            left: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(10.into())),
-            }),
-            operator: Token {
-                kind: TokenKind::Greater,
-                lexeme: ">".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(2.into())),
-            }),
-        };
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Number(5.into()));
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Boolean(true));
+            let expr = Expr::BinaryExpression {
+                left: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(10.into())),
+                }),
+                operator: Token {
+                    kind: TokenKind::Greater,
+                    lexeme: ">".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(2.into())),
+                }),
+            };
 
-        let expr = Expr::BinaryExpression {
-            left: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(10.into())),
-            }),
-            operator: Token {
-                kind: TokenKind::GreaterEqual,
-                lexeme: ">=".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(2.into())),
-            }),
-        };
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(true));
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Boolean(true));
+            let expr = Expr::BinaryExpression {
+                left: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(10.into())),
+                }),
+                operator: Token {
+                    kind: TokenKind::GreaterEqual,
+                    lexeme: ">=".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(2.into())),
+                }),
+            };
 
-        let expr = Expr::BinaryExpression {
-            left: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(10.into())),
-            }),
-            operator: Token {
-                kind: TokenKind::Less,
-                lexeme: "<".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(2.into())),
-            }),
-        };
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(true));
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Boolean(false));
+            let expr = Expr::BinaryExpression {
+                left: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(10.into())),
+                }),
+                operator: Token {
+                    kind: TokenKind::Less,
+                    lexeme: "<".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(2.into())),
+                }),
+            };
 
-        let expr = Expr::BinaryExpression {
-            left: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(10.into())),
-            }),
-            operator: Token {
-                kind: TokenKind::LessEqual,
-                lexeme: "<=".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(2.into())),
-            }),
-        };
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(false));
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Boolean(false));
+            let expr = Expr::BinaryExpression {
+                left: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(10.into())),
+                }),
+                operator: Token {
+                    kind: TokenKind::LessEqual,
+                    lexeme: "<=".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(2.into())),
+                }),
+            };
 
-        let expr = Expr::BinaryExpression {
-            left: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(10.into())),
-            }),
-            operator: Token {
-                kind: TokenKind::BangEqual,
-                lexeme: "!=".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Nil),
-            }),
-        };
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(false));
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Boolean(true));
+            let expr = Expr::BinaryExpression {
+                left: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(10.into())),
+                }),
+                operator: Token {
+                    kind: TokenKind::BangEqual,
+                    lexeme: "!=".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Nil),
+                }),
+            };
 
-        let expr = Expr::BinaryExpression {
-            left: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(10.into())),
-            }),
-            operator: Token {
-                kind: TokenKind::EqualEqual,
-                lexeme: "==".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Nil),
-            }),
-        };
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(true));
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Boolean(false));
+            let expr = Expr::BinaryExpression {
+                left: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(10.into())),
+                }),
+                operator: Token {
+                    kind: TokenKind::EqualEqual,
+                    lexeme: "==".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Nil),
+                }),
+            };
+
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(false));
+        }
+
+        #[test]
+        fn unary_expressions() {
+            let expr = Expr::UnaryExpression {
+                operator: Token {
+                    kind: TokenKind::Minus,
+                    lexeme: "-".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(1.into())),
+                }),
+            };
+
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Number((-1).into()));
+
+            let expr = Expr::UnaryExpression {
+                operator: Token {
+                    kind: TokenKind::Bang,
+                    lexeme: "!".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                right: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Boolean(true)),
+                }),
+            };
+
+            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(false));
+        }
     }
 
-    #[test]
-    fn unary_expressions() {
-        let expr = Expr::UnaryExpression {
-            operator: Token {
-                kind: TokenKind::Minus,
-                lexeme: "-".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Number(1.into())),
-            }),
-        };
+    mod execute_statements_tests {
+        use super::*;
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Number((-1).into()));
+        #[test]
+        fn var_decl_statement() {
+            let stmt = Stmt::VarDeclStmt {
+                name: Token {
+                    kind: TokenKind::Identifier,
+                    lexeme: "a".into(),
+                    line: 0,
+                    column: 0,
+                    literal: None,
+                },
+                initializer: Expr::LiteralExpression {
+                    value: Some(Literal::Number(1.into())),
+                },
+            };
 
-        let expr = Expr::UnaryExpression {
-            operator: Token {
-                kind: TokenKind::Bang,
-                lexeme: "!".into(),
-                line: 0,
-                column: 0,
-                literal: None,
-            },
-            right: Box::new(Expr::LiteralExpression {
-                value: Some(Literal::Boolean(true)),
-            }),
-        };
+            let mut env = HashMap::<&'_ str, Literal>::new();
 
-        assert_eq!(evaluate(&expr).unwrap(), Literal::Boolean(false));
+            execute(&stmt, &mut env).unwrap();
+
+            assert_eq!(env.get("a").unwrap(), &Literal::Number(1.into()));
+        }
     }
 }

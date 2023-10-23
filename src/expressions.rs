@@ -111,4 +111,7 @@ pub enum Expr {
     VarDeclExpression {
         name: Token,
     },
+    VariableResolutionExpression {
+        name: Token,
+    },
 }

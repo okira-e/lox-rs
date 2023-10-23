@@ -308,22 +308,11 @@ impl<'a> Parser<'a> {
                 }
             )
         } else {
-            let err = Error::new(
-                "Unrecognised token".into(),
-                Some(self.current_token().line),
-                self.current_token().column,
-                None,
-            );
-
-            report_error(&err);
-
-            self.errors.push(err);
-
-            self.synchronise();
+            self.advance();
 
             Box::new(
-                Expr::LiteralExpression {
-                    value: Some(Literal::Nil),
+                Expr::VariableResolutionExpression {
+                    name: self.previous().clone(),
                 }
             )
         };
