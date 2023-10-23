@@ -403,12 +403,7 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
         } => {
             return match value {
                 Some(value) => Ok(value.clone()),
-                None => Err(Error {
-                    msg: "Literal value missing.".into(),
-                    line: None, // TODO: Find a value for this.
-                    column: 0,
-                    hint: None,
-                })
+                None => Ok(Literal::Nil),
             };
         }
         Expr::LogicalExpression {
