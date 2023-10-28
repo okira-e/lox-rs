@@ -17,7 +17,8 @@ use crate::token_kinds::TokenKind;
 /// * statement             → exprStmt | printStmt ;
 /// * exprStmt              → expression ;
 /// * printStmt             → "print" expression ;
-/// * expression            → equality ;
+/// * expression            → assignment ;
+/// * assignment            → IDENTIFIER "=" assignment | equality ;
 /// * equality              → comparison ( ( "!=" | "==" ) comparison )* ;
 /// * comparison            → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 /// * term                  → factor ( ( "-" | "+" ) factor )* ;
@@ -58,7 +59,7 @@ impl<'a> Parser<'a> {
 
         if self.tokens[self.current].kind != TokenKind::Semicolon {
             let err = Error::new(
-                "Expected \";\" after statement".into(),
+                "Expected \";\" after statement.".into(),
                 Some(self.previous().line),
                 self.tokens[self.current].column,
                 None,
@@ -87,7 +88,7 @@ impl<'a> Parser<'a> {
 
         if self.current_token().kind != TokenKind::Identifier {
             let err = Error::new(
-                "Expected identifier after \"var\"".into(),
+                "Expected identifier after \"var\".".into(),
                 Some(self.previous().line),
                 self.previous().column,
                 None,
@@ -117,9 +118,7 @@ impl<'a> Parser<'a> {
 
             self.expression_rule()
         } else {
-            Box::new(Expr::LiteralExpression {
-                value: None,
-            })
+            Box::new(Expr::LiteralExpression { value: None })
         };
 
         return Stmt::VarDeclStmt {
@@ -136,8 +135,18 @@ impl<'a> Parser<'a> {
 
     fn statement_rule(&mut self) -> Stmt {
         return if self.current_token().kind == TokenKind::Print {
+            // Print statement.
             self.print_statement_rule()
+        } else if self.peek().kind == TokenKind::Equal {
+            // Assignment statement.
+            let ret = Stmt::AssignmentStmt {
+                name: self.current_token().clone(),
+                value: self.assignment_rule(),
+            };
+
+            return ret;
         } else {
+            // Expression statement. An expression wrapped in a statement.
             self.expression_statement_rule()
         };
     }
@@ -147,27 +156,44 @@ impl<'a> Parser<'a> {
 
         let value = self.expression_rule();
 
-        return Stmt::PrintStmt {
-            expression: value,
-        };
+        return Stmt::PrintStmt { expression: value };
     }
 
     fn expression_statement_rule(&mut self) -> Stmt {
         let expr = self.expression_rule();
 
-        return Stmt::ExpressionStmt {
-            expression: expr,
-        };
+        return Stmt::ExpressionStmt { expression: expr };
     }
 
     fn expression_rule(&mut self) -> Box<Expr> {
-        return self.equality_rule();
+        return self.assignment_rule();
+    }
+
+    fn assignment_rule(&mut self) -> Box<Expr> {
+        let expr = self.equality_rule();
+
+        if self.current_token().kind == TokenKind::Equal {
+            let var_name = self.previous().clone();
+
+            self.advance();
+
+            let value = self.assignment_rule();
+
+            return Box::new(Expr::AssignmentExpression {
+                name: var_name,
+                value,
+            });
+        }
+
+        return expr;
     }
 
     fn equality_rule(&mut self) -> Box<Expr> {
         let mut expr = self.comparison_rule();
 
-        while self.tokens[self.current].kind == TokenKind::BangEqual || self.tokens[self.current].kind == TokenKind::EqualEqual {
+        while self.tokens[self.current].kind == TokenKind::BangEqual
+            || self.tokens[self.current].kind == TokenKind::EqualEqual
+        {
             self.advance();
 
             expr = Box::new(Expr::BinaryExpression {
@@ -183,8 +209,10 @@ impl<'a> Parser<'a> {
     fn comparison_rule(&mut self) -> Box<Expr> {
         let mut expr = self.term_rule();
 
-        while self.tokens[self.current].kind == TokenKind::Greater || self.tokens[self.current].kind == TokenKind::GreaterEqual
-            || self.tokens[self.current].kind == TokenKind::Less || self.tokens[self.current].kind == TokenKind::LessEqual
+        while self.tokens[self.current].kind == TokenKind::Greater
+            || self.tokens[self.current].kind == TokenKind::GreaterEqual
+            || self.tokens[self.current].kind == TokenKind::Less
+            || self.tokens[self.current].kind == TokenKind::LessEqual
         {
             self.advance();
 
@@ -201,7 +229,9 @@ impl<'a> Parser<'a> {
     fn term_rule(&mut self) -> Box<Expr> {
         let mut expr = self.factor_rule();
 
-        while self.tokens[self.current].kind == TokenKind::Minus || self.tokens[self.current].kind == TokenKind::Plus {
+        while self.tokens[self.current].kind == TokenKind::Minus
+            || self.tokens[self.current].kind == TokenKind::Plus
+        {
             self.advance();
 
             expr = Box::new(Expr::BinaryExpression {
@@ -217,7 +247,9 @@ impl<'a> Parser<'a> {
     fn factor_rule(&mut self) -> Box<Expr> {
         let mut expr = self.unary_rule();
 
-        while self.tokens[self.current].kind == TokenKind::Slash || self.tokens[self.current].kind == TokenKind::Star {
+        while self.tokens[self.current].kind == TokenKind::Slash
+            || self.tokens[self.current].kind == TokenKind::Star
+        {
             self.advance();
 
             expr = Box::new(Expr::BinaryExpression {
@@ -232,7 +264,9 @@ impl<'a> Parser<'a> {
 
     fn unary_rule(&mut self) -> Box<Expr> {
         // TODO: This currently doesn't support multiple unary operators in a row like `!!true`.
-        if self.tokens[self.current].kind == TokenKind::Bang || self.tokens[self.current].kind == TokenKind::Minus {
+        if self.tokens[self.current].kind == TokenKind::Bang
+            || self.tokens[self.current].kind == TokenKind::Minus
+        {
             self.advance();
 
             let expr = Box::new(Expr::UnaryExpression {
@@ -250,35 +284,29 @@ impl<'a> Parser<'a> {
         return if self.current_token().kind == TokenKind::True {
             self.advance();
 
-            Box::new(
-                Expr::LiteralExpression {
-                    value: Some(Literal::Boolean(true)),
-                }
-            )
+            Box::new(Expr::LiteralExpression {
+                value: Some(Literal::Boolean(true)),
+            })
         } else if self.current_token().kind == TokenKind::False {
             self.advance();
 
-            Box::new(
-                Expr::LiteralExpression {
-                    value: Some(Literal::Boolean(false)),
-                }
-            )
+            Box::new(Expr::LiteralExpression {
+                value: Some(Literal::Boolean(false)),
+            })
         } else if self.current_token().kind == TokenKind::Nil {
             self.advance();
 
-            Box::new(
-                Expr::LiteralExpression {
-                    value: Some(Literal::Nil),
-                }
-            )
-        } else if self.current_token().kind == TokenKind::String || self.current_token().kind == TokenKind::Number {
+            Box::new(Expr::LiteralExpression {
+                value: Some(Literal::Nil),
+            })
+        } else if self.current_token().kind == TokenKind::String
+            || self.current_token().kind == TokenKind::Number
+        {
             self.advance();
 
-            Box::new(
-                Expr::LiteralExpression {
-                    value: self.previous().literal.clone(),
-                }
-            )
+            Box::new(Expr::LiteralExpression {
+                value: self.previous().literal.clone(),
+            })
         } else if self.current_token().kind == TokenKind::LeftParen {
             // We don't capture any of the parentheses tokens. We only group the expression.
 
@@ -289,7 +317,7 @@ impl<'a> Parser<'a> {
             // Check if the next token is a closing parenthesis.
             if self.current_token().kind != TokenKind::RightParen {
                 let err = Error::new(
-                    "Expected \")\" after expression".into(),
+                    "Expected \")\" after expression.".into(),
                     Some(self.current_token().line),
                     self.current_token().column,
                     None,
@@ -302,19 +330,13 @@ impl<'a> Parser<'a> {
 
             self.advance();
 
-            Box::new(
-                Expr::GroupingExpression {
-                    expression: expr,
-                }
-            )
+            Box::new(Expr::GroupingExpression { expression: expr })
         } else {
             self.advance();
 
-            Box::new(
-                Expr::VariableResolutionExpression {
-                    name: self.previous().clone(),
-                }
-            )
+            Box::new(Expr::VariableResolutionExpression {
+                name: self.previous().clone(),
+            })
         };
     }
 
@@ -343,14 +365,14 @@ impl<'a> Parser<'a> {
     /// Get the next token without advancing the current token.
     fn peek(&self) -> &Token {
         return self.tokens.get(self.current + 1).unwrap_or_else(|| {
-            println!("Error getting token at index {}", self.current + 1);
+            println!("Error getting token at index {}.", self.current + 1);
             std::process::exit(1);
         });
     }
 
     fn current_token(&self) -> &Token {
         return self.tokens.get(self.current).unwrap_or_else(|| {
-            println!("Error getting token at index {}", self.current);
+            println!("Error getting token at index {}.", self.current);
             std::process::exit(1);
         });
     }
@@ -358,7 +380,7 @@ impl<'a> Parser<'a> {
     /// Get the previous token.
     fn previous(&self) -> &Token {
         return self.tokens.get(self.current - 1).unwrap_or_else(|| {
-            println!("Error getting token at index {}", self.current - 1);
+            println!("Error getting token at index {}.", self.current - 1);
             std::process::exit(1);
         });
     }
@@ -432,31 +454,23 @@ mod tests {
         assert_eq!(
             statements[0],
             Stmt::ExpressionStmt {
-                expression: Box::new(
-                    GroupingExpression {
-                        expression: Box::new(
-                            Expr::BinaryExpression {
-                                left: Box::new(
-                                    Expr::LiteralExpression {
-                                        value: Some(Literal::Number(123.into())),
-                                    }
-                                ),
-                                operator: Token {
-                                    kind: TokenKind::Star,
-                                    lexeme: "*".into(),
-                                    line: 1,
-                                    column: 2,
-                                    literal: None,
-                                },
-                                right: Box::new(
-                                    Expr::LiteralExpression {
-                                        value: Some(Literal::Number(45.67.into())),
-                                    }
-                                ),
-                            }
-                        ),
-                    }
-                )
+                expression: Box::new(GroupingExpression {
+                    expression: Box::new(Expr::BinaryExpression {
+                        left: Box::new(Expr::LiteralExpression {
+                            value: Some(Literal::Number(123.into())),
+                        }),
+                        operator: Token {
+                            kind: TokenKind::Star,
+                            lexeme: "*".into(),
+                            line: 1,
+                            column: 2,
+                            literal: None,
+                        },
+                        right: Box::new(Expr::LiteralExpression {
+                            value: Some(Literal::Number(45.67.into())),
+                        }),
+                    }),
+                })
             }
         );
     }

@@ -7,26 +7,28 @@ use crate::report_error;
 use crate::stmt::Stmt;
 use crate::token_kinds::TokenKind;
 
+type Env = HashMap<Box<String>, Literal>;
+
 pub fn interpret(statements: &Vec<Stmt>) {
-    let mut env = HashMap::<&str, Literal>::new();
+    let mut env = HashMap::<Box<String>, Literal>::new();
 
     for statement in statements {
-        execute(statement, &mut env).unwrap_or_else(|err| {
+        execute(Box::new(statement), &mut env).unwrap_or_else(|err| {
             report_error(&err);
         });
     }
 }
 
 /// Executes the given statement.
-fn execute<'a>(stmt: &'a Stmt, env: &mut HashMap::<&'a str, Literal>) -> Result<(), Error> {
-    match stmt {
+fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
+    match stmt.as_ref() {
         Stmt::VarDeclStmt {
             name,
             initializer,
         } => {
             let value = evaluate(initializer, env)?;
 
-            if env.contains_key(name.lexeme.as_str()) {
+            if env.contains_key(&name.lexeme) {
                 return Err(
                     Error {
                         msg: format!("Variable \"{}\" already declared.", name.lexeme),
@@ -37,7 +39,26 @@ fn execute<'a>(stmt: &'a Stmt, env: &mut HashMap::<&'a str, Literal>) -> Result<
                 );
             }
 
-            env.insert(name.lexeme.as_str(), value);
+            env.insert(Box::new(name.clone().lexeme), value);
+        }
+        Stmt::AssignmentStmt { // TODO: `a = b = 5;` is not currently allowed.
+            name,
+            value,
+        } => {
+            if !env.contains_key(&name.lexeme) {
+                return Err(
+                    Error {
+                        msg: format!("Assignment of undeclared variable \"{}\".", name.lexeme),
+                        line: Some(name.line),
+                        column: 0,
+                        hint: None,
+                    }
+                );
+            }
+
+            let value = evaluate(value, env)?;
+
+            env.insert(Box::new(name.clone().lexeme), value);
         }
         Stmt::BlockStmt {
             statements,
@@ -108,13 +129,13 @@ fn execute<'a>(stmt: &'a Stmt, env: &mut HashMap::<&'a str, Literal>) -> Result<
 }
 
 /// Evaluates the given expression.
-fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Literal, Error> {
+fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
     match expr {
-        Expr::AssignExpression {
-            name,
-            value,
+        Expr::AssignmentExpression {
+            name: _name,
+            value
         } => {
-            todo!();
+            return evaluate(value, env);
         }
         Expr::BinaryExpression {
             left,
@@ -135,7 +156,7 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
                                     Ok(Literal::String(left.to_string() + &right)),
                                 Err(err) => Err(err),
                                 _ => Err(Error {
-                                    msg: format!("Operands of \"{}\" must be two numbers or two strings", &operator.lexeme),
+                                    msg: format!("Operands of \"{}\" must be two numbers or two strings.", &operator.lexeme),
                                     line: Some(operator.line),
                                     column: 0,
                                     hint: None,
@@ -150,7 +171,7 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
                                     Ok(Literal::String(left + &right)),
                                 Err(err) => Err(err),
                                 _ => Err(Error {
-                                    msg: format!("Operands of \"{}\" must be two numbers or two strings", &operator.lexeme),
+                                    msg: format!("Operands of \"{}\" must be two numbers or two strings.", &operator.lexeme),
                                     line: Some(operator.line),
                                     column: 0,
                                     hint: None,
@@ -159,7 +180,7 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
                         }
                         Err(err) => Err(err),
                         _ => Err(Error {
-                            msg: format!("Operands of \"{}\" must be two numbers or two strings", &operator.lexeme),
+                            msg: format!("Operands of \"{}\" must be two numbers or two strings.", &operator.lexeme),
                             line: Some(operator.line),
                             column: 0,
                             hint: None,
@@ -193,7 +214,7 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
                                 Err(err) => Err(err),
                                 _ => {
                                     Err(Error {
-                                        msg: format!("Operands of \"{}\" must be two numbers", &operator.lexeme),
+                                        msg: format!("Operands of \"{}\" must be two numbers.", &operator.lexeme),
                                         line: Some(operator.line),
                                         column: 0,
                                         hint: None,
@@ -204,7 +225,7 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
                         Err(err) => Err(err),
                         _ => {
                             Err(Error {
-                                msg: format!("Operands of \"{}\" must be two numbers", &operator.lexeme),
+                                msg: format!("Operands of \"{}\" must be two numbers.", &operator.lexeme),
                                 line: Some(operator.line),
                                 column: 0,
                                 hint: None,
@@ -345,7 +366,7 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
                                 Err(err) => Err(err),
                                 _ => {
                                     Err(Error {
-                                        msg: format!("Operands of \"{}\" must be two numbers", &operator.lexeme),
+                                        msg: format!("Operands of \"{}\" must be two numbers.", &operator.lexeme),
                                         line: Some(operator.line),
                                         column: 0,
                                         hint: None,
@@ -356,7 +377,7 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
                         Err(err) => Err(err),
                         _ => {
                             Err(Error {
-                                msg: format!("Operands of \"{}\" must be two numbers", &operator.lexeme),
+                                msg: format!("Operands of \"{}\" must be two numbers.", &operator.lexeme),
                                 line: Some(operator.line),
                                 column: 0,
                                 hint: None,
@@ -370,10 +391,10 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
         Expr::VariableResolutionExpression {
             name,
         } => {
-            return match env.get(name.lexeme.as_str()) {
+            return match env.get(&name.clone().lexeme) {
                 Some(value) => Ok(value.clone()),
                 None => Err(Error {
-                    msg: format!("Undefined variable \"{}\".", name.lexeme),
+                    msg: format!("Usage of undeclared variable \"{}\".", name.lexeme),
                     line: Some(name.line),
                     column: 0,
                     hint: None,
@@ -443,7 +464,7 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
                         Ok(Literal::Number(right)) => Ok(Literal::Number(-right)),
                         Err(err) => Err(err),
                         _ => Err(Error {
-                            msg: format!("Operand of \"{}\" must be a number", &operator.lexeme),
+                            msg: format!("Operand of \"{}\" must be a number.", &operator.lexeme),
                             line: Some(operator.line),
                             column: 0,
                             hint: None,
@@ -455,7 +476,7 @@ fn evaluate<'a>(expr: &Expr, env: &mut HashMap::<&'a str, Literal>) -> Result<Li
                         Ok(Literal::Boolean(right)) => Ok(Literal::Boolean(!right)),
                         Err(err) => Err(err),
                         _ => Err(Error {
-                            msg: format!("Operand of \"{}\" must be a boolean", &operator.lexeme),
+                            msg: format!("Operand of \"{}\" must be a boolean.", &operator.lexeme),
                             line: Some(operator.line),
                             column: 0,
                             hint: None,
@@ -501,7 +522,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Number(3.into()));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Number(3.into()));
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -519,7 +540,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Number((-1).into()));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Number((-1).into()));
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -537,7 +558,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Number(20.into()));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Number(20.into()));
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -555,7 +576,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Number(5.into()));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Number(5.into()));
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -573,7 +594,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(true));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(true));
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -591,7 +612,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(true));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(true));
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -609,7 +630,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(false));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(false));
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -627,7 +648,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(false));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(false));
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -645,7 +666,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(true));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(true));
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -663,7 +684,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(false));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(false));
         }
 
         #[test]
@@ -681,7 +702,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Number((-1).into()));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Number((-1).into()));
 
             let expr = Expr::UnaryExpression {
                 operator: Token {
@@ -696,7 +717,7 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut HashMap::<&'_ str, Literal>::new()).unwrap(), Literal::Boolean(false));
+            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(false));
         }
     }
 
@@ -718,11 +739,11 @@ mod tests {
                 },
             };
 
-            let mut env = HashMap::<&'_ str, Literal>::new();
+            let mut env = HashMap::<Box<String>, Literal>::new();
 
-            execute(&stmt, &mut env).unwrap();
+            execute(Box::new(&stmt), &mut env).unwrap();
 
-            assert_eq!(env.get("a").unwrap(), &Literal::Number(1.into()));
+            assert_eq!(env.get(&"a".to_string()).unwrap(), &Literal::Number(1.into()));
         }
     }
 }

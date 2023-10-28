@@ -13,6 +13,10 @@ pub enum Stmt {
         name: Token,
         initializer: Expr,
     },
+    AssignmentStmt {
+        name: Token,
+        value: Box<Expr>,
+    },
     BlockStmt {
         statements: Vec<Stmt>,
     },

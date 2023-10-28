@@ -1,5 +1,8 @@
-var a = 5;
+var a = 1;
 
-var b = 7;
+var b = 5;
 
-print (a + 3) > b;
+a = 10;
+b = 10;
+
+print (a + 3) < b;
