@@ -126,14 +126,12 @@ impl<'a> Tokenizer<'a> {
 
                 // If we're at the end of the source code before a closing '"', add an error.
                 if self.peek() == '\n' || self.is_at_end() {
-                    self.errors.push(
-                        Error::new(
-                            "Unterminated string".into(),
-                            Some(self.line),
-                            self.column,
-                            None,
-                        )
-                    );
+                    self.errors.push(Error::new(
+                        "Unterminated string.".into(),
+                        Some(self.line),
+                        self.column,
+                        None,
+                    ));
 
                     return;
                 }
@@ -143,11 +141,12 @@ impl<'a> Tokenizer<'a> {
 
                 // The value of the string literal is the substring of the source code from the
                 // start index to the current index.
-                let value = self.source[self.start_of_lexeme + 1..self.current_char - 1]
-                    .to_string();
+                let value =
+                    self.source[self.start_of_lexeme + 1..self.current_char - 1].to_string();
                 self.add_token(TokenKind::String, Some(Literal::String(value)));
             }
-            _ => { // Handle numbers and identifiers.
+            _ => {
+                // Handle numbers and identifiers.
                 if current_char.is_numeric() {
                     // If it's a digit, scan and add a number token.
                     while self.peek().is_numeric() {
@@ -162,26 +161,24 @@ impl<'a> Tokenizer<'a> {
                         }
                     }
 
-                    let value = self.source[self.start_of_lexeme..self.current_char].
-                        parse::<f64>().unwrap_or_else(|err| {
-                        self.errors.push(
-                            Error::new(
-                                format!("Error parsing number: {}", err),
+                    let value = self.source[self.start_of_lexeme..self.current_char]
+                        .parse::<f64>()
+                        .unwrap_or_else(|err| {
+                            self.errors.push(Error::new(
+                                format!("Error parsing number: {}.", err),
                                 Some(self.line),
                                 self.column,
                                 None,
-                            )
-                        );
+                            ));
 
-                        return 0f64;
-                    });
+                            return 0f64;
+                        });
 
                     self.add_token(TokenKind::Number, Some(Literal::Number(value)));
                 } else if current_char.is_alphabetic() {
                     // Identify if the typed keyword is reserved or an identifier.
 
-                    while !(
-                        self.peek() == '\n'
+                    while !(self.peek() == '\n'
                             || self.peek() == ' '
                             || self.is_at_end()
                             || self.peek() == '\t'
@@ -191,8 +188,8 @@ impl<'a> Tokenizer<'a> {
                             || self.peek() == '}'
                             || self.peek() == ','
                             || self.peek() == '.'
-                            || self.peek() == ';'
-                    ) {
+                            || self.peek() == ';')
+                    {
                         self.advance();
                     }
 
@@ -202,14 +199,12 @@ impl<'a> Tokenizer<'a> {
 
                     self.add_token(kind, None);
                 } else {
-                    self.errors.push(
-                        Error::new(
-                            format!("Unrecognized character \"{}\"", current_char),
-                            Some(self.line),
-                            self.column,
-                            None,
-                        )
-                    );
+                    self.errors.push(Error::new(
+                        format!("Unrecognized character \"{}\".", current_char),
+                        Some(self.line),
+                        self.column,
+                        None,
+                    ));
                 }
             }
         }
@@ -240,7 +235,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// add_token adds a new token to the tokens vector.
-    /// literal is an optional string that represents the literal value of the token. It can be
+    /// `literal` param is an optional string that represents the literal value of the token. It can be
     /// None if the token doesn't have a literal value. Or it can be a string for string literals
     /// and number literals.
     fn add_token(&mut self, kind: TokenKind, literal: Option<Literal>) {
@@ -264,14 +259,17 @@ impl<'a> Tokenizer<'a> {
             return false;
         }
 
-        let next_char = self.source.chars().nth(self.current_char).unwrap_or_else(|| {
-            // This should never happen because we check if we're at the end of the source code
-            // before calling this function.
-            panic!("No character at index {}. Last read character was {}",
-                   self.current_char,
-                   self.source.chars().nth(self.current_char - 1).unwrap()
-            );
-        });
+        let next_char = self
+            .source
+            .chars()
+            .nth(self.current_char)
+            .unwrap_or_else(|| {
+                panic!(
+                    "No character at index {}. Last read character was {}.",
+                    self.current_char,
+                    self.source.chars().nth(self.current_char - 1).unwrap()
+                );
+            });
         if next_char != expected_next {
             return false;
         }
@@ -283,13 +281,18 @@ impl<'a> Tokenizer<'a> {
     /// advance consumes the current character the Tokenizer's at and returns it.
     /// Then it increments the current index.
     fn advance(&mut self) -> char {
-        let char = self.source.chars().nth(self.current_char).unwrap_or_else(|| {
-            println!("No character at index {}. Last read character was {}",
-                     self.current_char,
-                     self.source.chars().nth(self.current_char - 1).unwrap()
-            );
-            std::process::exit(1);
-        });
+        let char = self
+            .source
+            .chars()
+            .nth(self.current_char)
+            .unwrap_or_else(|| {
+                println!(
+                    "No character at index {}. Last read character was {}.",
+                    self.current_char,
+                    self.source.chars().nth(self.current_char - 1).unwrap()
+                );
+                std::process::exit(1);
+            });
         self.current_char += 1;
 
         return char;
@@ -320,7 +323,6 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -328,7 +330,7 @@ mod tests {
     mod scanning {
         use super::*;
 
-// Keep in mind that the tokenizer adds an EOF token to the end of the tokens vector.
+        // Keep in mind that the tokenizer adds an EOF token to the end of the tokens vector.
 
         #[test]
         fn scan_tokens() {
@@ -437,8 +439,7 @@ mod tests {
             let (tokens, errors) = tokenizer.scan_tokens();
             assert_eq!(tokens.len(), 4);
             assert_eq!(errors.len(), 1);
-            assert_eq!(errors[0].msg, String::from("Unrecognized character \"^\""));
+            assert_eq!(errors[0].msg, String::from("Unrecognized character \"^\"."));
         }
     }
 }
-
