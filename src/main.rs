@@ -1,21 +1,21 @@
-use std::{fs, io};
 use std::io::Write;
+use std::{fs, io};
 
 use tokenizer::Tokenizer;
 
 use crate::language_error::Error;
 use crate::parser::Parser;
 
+mod ast_printer;
+mod expressions;
+mod interpreter;
+mod language_error;
+mod literal;
+mod parser;
+mod stmt;
 mod token;
 mod token_kinds;
 mod tokenizer;
-mod literal;
-mod expressions;
-mod ast_printer;
-mod parser;
-mod language_error;
-mod interpreter;
-mod stmt;
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
@@ -96,8 +96,8 @@ fn run(input: &str, run_mode: RunMode) {
         }
     }
 
-    // for statement in statements {
-    //     println!("\nAST: {}\n", print_ast(&statement));
+    // for statement in &statements {
+    //     println!("\nAST: {}\n", ast_printer::print_ast(statement));
     // }
 
     interpreter::interpret(&statements);
@@ -106,8 +106,8 @@ fn run(input: &str, run_mode: RunMode) {
 /// Report a compiler error.
 pub fn report_error(err: &Error) {
     if let Some(line) = err.line {
-        println!("Found an error at line {}. {}", line, err.msg);
+        eprintln!("Found an error at line {}. {}", line, err.msg);
     } else {
-        println!("{}", err.msg);
+        eprintln!("{}", err.msg);
     }
 }
