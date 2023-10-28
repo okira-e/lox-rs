@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::io::Write;
 use crate::expressions::Expr;
 use crate::language_error::Error;
 use crate::literal::Literal;
 use crate::report_error;
 use crate::stmt::Stmt;
 use crate::token_kinds::TokenKind;
+use std::collections::HashMap;
+use std::io::Write;
 
 type Env = HashMap<Box<String>, Literal>;
 
@@ -22,47 +22,39 @@ pub fn interpret(statements: &Vec<Stmt>) {
 /// Executes the given statement.
 fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
     match stmt.as_ref() {
-        Stmt::VarDeclStmt {
-            name,
-            initializer,
-        } => {
+        Stmt::VarDeclStmt { name, initializer } => {
             let value = evaluate(initializer, env)?;
 
             if env.contains_key(&name.lexeme) {
-                return Err(
-                    Error {
-                        msg: format!("Variable \"{}\" already declared.", name.lexeme),
-                        line: Some(name.line),
-                        column: 0,
-                        hint: None,
-                    }
-                );
+                return Err(Error {
+                    msg: format!("Variable \"{}\" already declared.", name.lexeme),
+                    line: Some(name.line),
+                    column: 0,
+                    hint: None,
+                });
             }
 
             env.insert(Box::new(name.clone().lexeme), value);
         }
-        Stmt::AssignmentStmt { // TODO: `a = b = 5;` is not currently allowed.
+        Stmt::AssignmentStmt {
+            // TODO: `a = b = 5;` is not currently allowed.
             name,
             value,
         } => {
             if !env.contains_key(&name.lexeme) {
-                return Err(
-                    Error {
-                        msg: format!("Assignment of undeclared variable \"{}\".", name.lexeme),
-                        line: Some(name.line),
-                        column: 0,
-                        hint: None,
-                    }
-                );
+                return Err(Error {
+                    msg: format!("Assignment of undeclared variable \"{}\".", name.lexeme),
+                    line: Some(name.line),
+                    column: 0,
+                    hint: None,
+                });
             }
 
             let value = evaluate(value, env)?;
 
             env.insert(Box::new(name.clone().lexeme), value);
         }
-        Stmt::BlockStmt {
-            statements,
-        } => {
+        Stmt::BlockStmt { statements } => {
             todo!();
         }
         Stmt::ClassStmt {
@@ -72,16 +64,10 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
         } => {
             todo!();
         }
-        Stmt::ExpressionStmt {
-            expression,
-        } => {
+        Stmt::ExpressionStmt { expression } => {
             evaluate(expression, env)?;
         }
-        Stmt::FunctionStmt {
-            name,
-            params,
-            body,
-        } => {
+        Stmt::FunctionStmt { name, params, body } => {
             todo!();
         }
         Stmt::IfStmt {
@@ -91,36 +77,26 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
         } => {
             todo!();
         }
-        Stmt::PrintStmt {
-            expression,
-        } => {
+        Stmt::PrintStmt { expression } => {
             let mut stdout = std::io::stdout();
 
             let err = stdout.write(format!("{}", evaluate(expression, env)?.to_string()).as_ref());
             return match err {
                 Ok(_) => Ok(()),
                 Err(_) => {
-                    return Err(
-                        Error {
-                            msg: format!("Error writing to stdout"),
-                            line: None,
-                            column: 0,
-                            hint: None,
-                        }
-                    );
+                    return Err(Error {
+                        msg: format!("Error writing to stdout"),
+                        line: None,
+                        column: 0,
+                        hint: None,
+                    });
                 }
             };
         }
-        Stmt::ReturnStmt {
-            keyword,
-            value,
-        } => {
+        Stmt::ReturnStmt { keyword, value } => {
             todo!();
         }
-        Stmt::WhileStmt {
-            condition,
-            body,
-        } => {
+        Stmt::WhileStmt { condition, body } => {
             todo!();
         }
     }
@@ -131,10 +107,7 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
 /// Evaluates the given expression.
 fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
     match expr {
-        Expr::AssignmentExpression {
-            name: _name,
-            value
-        } => {
+        Expr::AssignmentExpression { name: _name, value } => {
             return evaluate(value, env);
         }
         Expr::BinaryExpression {
@@ -146,56 +119,62 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
             let right = evaluate(right, env);
 
             return match operator.kind {
-                TokenKind::Plus => {
-                    match left {
-                        Ok(Literal::Number(left)) => {
-                            match right {
-                                Ok(Literal::Number(right)) =>
-                                    Ok(Literal::Number(left + right)),
-                                Ok(Literal::String(right)) =>
-                                    Ok(Literal::String(left.to_string() + &right)),
-                                Err(err) => Err(err),
-                                _ => Err(Error {
-                                    msg: format!("Operands of \"{}\" must be two numbers or two strings.", &operator.lexeme),
-                                    line: Some(operator.line),
-                                    column: 0,
-                                    hint: None,
-                                })
-                            }
-                        }
-                        Ok(Literal::String(left)) => {
-                            match right {
-                                Ok(Literal::Number(right)) =>
-                                    Ok(Literal::String(left + &right.to_string())),
-                                Ok(Literal::String(right)) =>
-                                    Ok(Literal::String(left + &right)),
-                                Err(err) => Err(err),
-                                _ => Err(Error {
-                                    msg: format!("Operands of \"{}\" must be two numbers or two strings.", &operator.lexeme),
-                                    line: Some(operator.line),
-                                    column: 0,
-                                    hint: None,
-                                })
-                            }
+                TokenKind::Plus => match left {
+                    Ok(Literal::Number(left)) => match right {
+                        Ok(Literal::Number(right)) => Ok(Literal::Number(left + right)),
+                        Ok(Literal::String(right)) => {
+                            Ok(Literal::String(left.to_string() + &right))
                         }
                         Err(err) => Err(err),
                         _ => Err(Error {
-                            msg: format!("Operands of \"{}\" must be two numbers or two strings.", &operator.lexeme),
+                            msg: format!(
+                                "Operands of \"{}\" must be two numbers or two strings.",
+                                &operator.lexeme
+                            ),
                             line: Some(operator.line),
                             column: 0,
                             hint: None,
-                        })
-                    }
-                }
-                TokenKind::Minus | TokenKind::Star | TokenKind::Slash
-                => {
+                        }),
+                    },
+                    Ok(Literal::String(left)) => match right {
+                        Ok(Literal::Number(right)) => {
+                            Ok(Literal::String(left + &right.to_string()))
+                        }
+                        Ok(Literal::String(right)) => Ok(Literal::String(left + &right)),
+                        Err(err) => Err(err),
+                        _ => Err(Error {
+                            msg: format!(
+                                "Operands of \"{}\" must be two numbers or two strings.",
+                                &operator.lexeme
+                            ),
+                            line: Some(operator.line),
+                            column: 0,
+                            hint: None,
+                        }),
+                    },
+                    Err(err) => Err(err),
+                    _ => Err(Error {
+                        msg: format!(
+                            "Operands of \"{}\" must be two numbers or two strings.",
+                            &operator.lexeme
+                        ),
+                        line: Some(operator.line),
+                        column: 0,
+                        hint: None,
+                    }),
+                },
+                TokenKind::Minus | TokenKind::Star | TokenKind::Slash => {
                     match left {
                         Ok(Literal::Number(left)) => {
                             match right {
                                 Ok(Literal::Number(right)) => {
                                     match operator.kind {
-                                        TokenKind::Minus => return Ok(Literal::Number(left - right)),
-                                        TokenKind::Star => return Ok(Literal::Number(left * right)),
+                                        TokenKind::Minus => {
+                                            return Ok(Literal::Number(left - right))
+                                        }
+                                        TokenKind::Star => {
+                                            return Ok(Literal::Number(left * right))
+                                        }
                                         TokenKind::Slash => {
                                             if right == 0f64 {
                                                 return Err(Error {
@@ -208,54 +187,52 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
 
                                             return Ok(Literal::Number(left / right));
                                         }
-                                        _ => Ok(Literal::Number(0f64)) // This should never happen.
+                                        _ => Ok(Literal::Number(0f64)), // This should never happen.
                                     }
                                 }
                                 Err(err) => Err(err),
-                                _ => {
-                                    Err(Error {
-                                        msg: format!("Operands of \"{}\" must be two numbers.", &operator.lexeme),
-                                        line: Some(operator.line),
-                                        column: 0,
-                                        hint: None,
-                                    })
-                                }
+                                _ => Err(Error {
+                                    msg: format!(
+                                        "Operands of \"{}\" must be two numbers.",
+                                        &operator.lexeme
+                                    ),
+                                    line: Some(operator.line),
+                                    column: 0,
+                                    hint: None,
+                                }),
                             }
                         }
                         Err(err) => Err(err),
-                        _ => {
-                            Err(Error {
-                                msg: format!("Operands of \"{}\" must be two numbers.", &operator.lexeme),
-                                line: Some(operator.line),
-                                column: 0,
-                                hint: None,
-                            })
-                        }
+                        _ => Err(Error {
+                            msg: format!(
+                                "Operands of \"{}\" must be two numbers.",
+                                &operator.lexeme
+                            ),
+                            line: Some(operator.line),
+                            column: 0,
+                            hint: None,
+                        }),
                     }
                 }
-                TokenKind::BangEqual |
-                TokenKind::EqualEqual
-                => {
+                TokenKind::BangEqual | TokenKind::EqualEqual => {
                     return match left {
                         Ok(Literal::Number(left)) => {
                             match right {
-                                Ok(Literal::Number(right)) => Ok(Literal::Boolean(
-                                    match operator.kind {
+                                Ok(Literal::Number(right)) => {
+                                    Ok(Literal::Boolean(match operator.kind {
                                         TokenKind::BangEqual => left != right,
                                         TokenKind::EqualEqual => left == right,
-                                        _ => false // This should never happen.
-                                    }
-                                )),
+                                        _ => false, // This should never happen.
+                                    }))
+                                }
                                 Ok(Literal::String(_right)) => Ok(Literal::Boolean(false)),
                                 Ok(Literal::Boolean(_right)) => Ok(Literal::Boolean(false)),
                                 Ok(Literal::Nil) => {
-                                    Ok(Literal::Boolean(
-                                        match operator.kind {
-                                            TokenKind::BangEqual => true,
-                                            TokenKind::EqualEqual => false,
-                                            _ => false // This should never happen.
-                                        }
-                                    ))
+                                    Ok(Literal::Boolean(match operator.kind {
+                                        TokenKind::BangEqual => true,
+                                        TokenKind::EqualEqual => false,
+                                        _ => false, // This should never happen.
+                                    }))
                                 }
                                 Err(err) => Err(err),
                             }
@@ -264,24 +241,20 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                         Ok(Literal::String(left)) => {
                             match right {
                                 Ok(Literal::String(right)) => {
-                                    Ok(Literal::Boolean(
-                                        match operator.kind {
-                                            TokenKind::BangEqual => left != right,
-                                            TokenKind::EqualEqual => left == right,
-                                            _ => false // This should never happen.
-                                        }
-                                    ))
+                                    Ok(Literal::Boolean(match operator.kind {
+                                        TokenKind::BangEqual => left != right,
+                                        TokenKind::EqualEqual => left == right,
+                                        _ => false, // This should never happen.
+                                    }))
                                 }
                                 Ok(Literal::Number(_right)) => Ok(Literal::Boolean(false)),
                                 Ok(Literal::Boolean(_right)) => Ok(Literal::Boolean(false)),
                                 Ok(Literal::Nil) => {
-                                    Ok(Literal::Boolean(
-                                        match operator.kind {
-                                            TokenKind::BangEqual => true,
-                                            TokenKind::EqualEqual => false,
-                                            _ => false // This should never happen.
-                                        }
-                                    ))
+                                    Ok(Literal::Boolean(match operator.kind {
+                                        TokenKind::BangEqual => true,
+                                        TokenKind::EqualEqual => false,
+                                        _ => false, // This should never happen.
+                                    }))
                                 }
                                 Err(err) => Err(err),
                             }
@@ -289,13 +262,11 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                         Ok(Literal::Boolean(left)) => {
                             match right {
                                 Ok(Literal::Boolean(right)) => {
-                                    Ok(Literal::Boolean(
-                                        match operator.kind {
-                                            TokenKind::BangEqual => left != right,
-                                            TokenKind::EqualEqual => left == right,
-                                            _ => false // This should never happen.
-                                        }
-                                    ))
+                                    Ok(Literal::Boolean(match operator.kind {
+                                        TokenKind::BangEqual => left != right,
+                                        TokenKind::EqualEqual => left == right,
+                                        _ => false, // This should never happen.
+                                    }))
                                 }
                                 Ok(Literal::Number(_right)) => Ok(Literal::Boolean(false)),
                                 Ok(Literal::String(_right)) => Ok(Literal::Boolean(false)),
@@ -306,91 +277,82 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                         Ok(Literal::Nil) => {
                             match right {
                                 Ok(Literal::Nil) => {
-                                    Ok(Literal::Boolean(
-                                        match operator.kind {
-                                            TokenKind::BangEqual => false,
-                                            TokenKind::EqualEqual => true,
-                                            _ => false // This should never happen.
-                                        }
-                                    ))
+                                    Ok(Literal::Boolean(match operator.kind {
+                                        TokenKind::BangEqual => false,
+                                        TokenKind::EqualEqual => true,
+                                        _ => false, // This should never happen.
+                                    }))
                                 }
                                 Ok(Literal::Number(_right)) => {
-                                    Ok(Literal::Boolean(
-                                        match operator.kind {
-                                            TokenKind::BangEqual => true,
-                                            TokenKind::EqualEqual => false,
-                                            _ => false // This should never happen.
-                                        }
-                                    ))
+                                    Ok(Literal::Boolean(match operator.kind {
+                                        TokenKind::BangEqual => true,
+                                        TokenKind::EqualEqual => false,
+                                        _ => false, // This should never happen.
+                                    }))
                                 }
                                 Ok(Literal::String(_right)) => {
-                                    Ok(Literal::Boolean(
-                                        match operator.kind {
-                                            TokenKind::BangEqual => true,
-                                            TokenKind::EqualEqual => false,
-                                            _ => false // This should never happen.
-                                        }
-                                    ))
+                                    Ok(Literal::Boolean(match operator.kind {
+                                        TokenKind::BangEqual => true,
+                                        TokenKind::EqualEqual => false,
+                                        _ => false, // This should never happen.
+                                    }))
                                 }
                                 Ok(Literal::Boolean(_right)) => {
-                                    Ok(Literal::Boolean(
-                                        match operator.kind {
-                                            TokenKind::BangEqual => false,
-                                            TokenKind::EqualEqual => false,
-                                            _ => false // This should never happen.
-                                        }
-                                    ))
+                                    Ok(Literal::Boolean(match operator.kind {
+                                        TokenKind::BangEqual => false,
+                                        TokenKind::EqualEqual => false,
+                                        _ => false, // This should never happen.
+                                    }))
                                 }
                                 Err(err) => Err(err),
                             }
                         }
                     };
                 }
-                TokenKind::Greater |
-                TokenKind::GreaterEqual |
-                TokenKind::Less |
-                TokenKind::LessEqual
-                => {
+                TokenKind::Greater
+                | TokenKind::GreaterEqual
+                | TokenKind::Less
+                | TokenKind::LessEqual => {
                     return match left {
                         Ok(Literal::Number(left)) => {
                             match right {
-                                Ok(Literal::Number(right)) => Ok(Literal::Boolean(
-                                    match operator.kind {
+                                Ok(Literal::Number(right)) => {
+                                    Ok(Literal::Boolean(match operator.kind {
                                         TokenKind::Greater => left > right,
                                         TokenKind::GreaterEqual => left >= right,
                                         TokenKind::Less => left < right,
                                         TokenKind::LessEqual => left <= right,
-                                        _ => false // This should never happen.
-                                    }
-                                )),
-                                Err(err) => Err(err),
-                                _ => {
-                                    Err(Error {
-                                        msg: format!("Operands of \"{}\" must be two numbers.", &operator.lexeme),
-                                        line: Some(operator.line),
-                                        column: 0,
-                                        hint: None,
-                                    })
+                                        _ => false, // This should never happen.
+                                    }))
                                 }
+                                Err(err) => Err(err),
+                                _ => Err(Error {
+                                    msg: format!(
+                                        "Operands of \"{}\" must be two numbers.",
+                                        &operator.lexeme
+                                    ),
+                                    line: Some(operator.line),
+                                    column: 0,
+                                    hint: None,
+                                }),
                             }
                         }
                         Err(err) => Err(err),
-                        _ => {
-                            Err(Error {
-                                msg: format!("Operands of \"{}\" must be two numbers.", &operator.lexeme),
-                                line: Some(operator.line),
-                                column: 0,
-                                hint: None,
-                            })
-                        }
+                        _ => Err(Error {
+                            msg: format!(
+                                "Operands of \"{}\" must be two numbers.",
+                                &operator.lexeme
+                            ),
+                            line: Some(operator.line),
+                            column: 0,
+                            hint: None,
+                        }),
                     };
                 }
-                _ => todo!("Handle error")
+                _ => todo!("Handle error"),
             };
         }
-        Expr::VariableResolutionExpression {
-            name,
-        } => {
+        Expr::VariableResolutionExpression { name } => {
             return match env.get(&name.clone().lexeme) {
                 Some(value) => Ok(value.clone()),
                 None => Err(Error {
@@ -398,30 +360,21 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                     line: Some(name.line),
                     column: 0,
                     hint: None,
-                })
+                }),
             };
         }
         Expr::CallExpression {
-            arguments,
-            callee,
-            ..
+            arguments, callee, ..
         } => {
             todo!();
         }
-        Expr::GetExpression {
-            object,
-            name,
-        } => {
+        Expr::GetExpression { object, name } => {
             todo!();
         }
-        Expr::GroupingExpression {
-            expression,
-        } => {
+        Expr::GroupingExpression { expression } => {
             return evaluate(expression, env);
         }
-        Expr::LiteralExpression {
-            value,
-        } => {
+        Expr::LiteralExpression { value } => {
             return match value {
                 Some(value) => Ok(value.clone()),
                 None => Ok(Literal::Nil),
@@ -441,59 +394,44 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
         } => {
             todo!();
         }
-        Expr::SuperExpression {
-            method,
-            ..
-        } => {
+        Expr::SuperExpression { method, .. } => {
             todo!();
         }
-        Expr::SelfExpression {
-            ..
-        } => {
+        Expr::SelfExpression { .. } => {
             todo!();
         }
-        Expr::UnaryExpression {
-            operator,
-            right,
-        } => {
+        Expr::UnaryExpression { operator, right } => {
             let interpreted_right = evaluate(right, env);
 
             return match operator.kind {
-                TokenKind::Minus => {
-                    match interpreted_right {
-                        Ok(Literal::Number(right)) => Ok(Literal::Number(-right)),
-                        Err(err) => Err(err),
-                        _ => Err(Error {
-                            msg: format!("Operand of \"{}\" must be a number.", &operator.lexeme),
-                            line: Some(operator.line),
-                            column: 0,
-                            hint: None,
-                        })
-                    }
-                }
-                TokenKind::Bang => {
-                    match interpreted_right {
-                        Ok(Literal::Boolean(right)) => Ok(Literal::Boolean(!right)),
-                        Err(err) => Err(err),
-                        _ => Err(Error {
-                            msg: format!("Operand of \"{}\" must be a boolean.", &operator.lexeme),
-                            line: Some(operator.line),
-                            column: 0,
-                            hint: None,
-                        })
-                    }
-                }
-                _ => todo!("Handle error")
+                TokenKind::Minus => match interpreted_right {
+                    Ok(Literal::Number(right)) => Ok(Literal::Number(-right)),
+                    Err(err) => Err(err),
+                    _ => Err(Error {
+                        msg: format!("Operand of \"{}\" must be a number.", &operator.lexeme),
+                        line: Some(operator.line),
+                        column: 0,
+                        hint: None,
+                    }),
+                },
+                TokenKind::Bang => match interpreted_right {
+                    Ok(Literal::Boolean(right)) => Ok(Literal::Boolean(!right)),
+                    Err(err) => Err(err),
+                    _ => Err(Error {
+                        msg: format!("Operand of \"{}\" must be a boolean.", &operator.lexeme),
+                        line: Some(operator.line),
+                        column: 0,
+                        hint: None,
+                    }),
+                },
+                _ => todo!("Handle error"),
             };
         }
-        Expr::VarDeclExpression {
-            name,
-        } => {
+        Expr::VarDeclExpression { name } => {
             todo!();
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -522,7 +460,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Number(3.into()));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Number(3.into())
+            );
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -540,7 +481,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Number((-1).into()));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Number((-1).into())
+            );
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -558,7 +502,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Number(20.into()));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Number(20.into())
+            );
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -576,7 +523,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Number(5.into()));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Number(5.into())
+            );
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -594,7 +544,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(true));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Boolean(true)
+            );
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -612,7 +565,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(true));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Boolean(true)
+            );
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -630,7 +586,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(false));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Boolean(false)
+            );
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -648,7 +607,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(false));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Boolean(false)
+            );
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -666,7 +628,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(true));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Boolean(true)
+            );
 
             let expr = Expr::BinaryExpression {
                 left: Box::new(Expr::LiteralExpression {
@@ -684,7 +649,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(false));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Boolean(false)
+            );
         }
 
         #[test]
@@ -702,7 +670,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Number((-1).into()));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Number((-1).into())
+            );
 
             let expr = Expr::UnaryExpression {
                 operator: Token {
@@ -717,7 +688,10 @@ mod tests {
                 }),
             };
 
-            assert_eq!(evaluate(&expr, &mut Env::new()).unwrap(), Literal::Boolean(false));
+            assert_eq!(
+                evaluate(&expr, &mut Env::new()).unwrap(),
+                Literal::Boolean(false)
+            );
         }
     }
 
@@ -743,7 +717,10 @@ mod tests {
 
             execute(Box::new(&stmt), &mut env).unwrap();
 
-            assert_eq!(env.get(&"a".to_string()).unwrap(), &Literal::Number(1.into()));
+            assert_eq!(
+                env.get(&"a".to_string()).unwrap(),
+                &Literal::Number(1.into())
+            );
         }
     }
 }

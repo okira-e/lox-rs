@@ -28,26 +28,19 @@ pub enum Expr {
     /// ```
     /// object.property
     /// ```
-    GetExpression {
-        object: Box<Expr>,
-        name: Token,
-    },
+    GetExpression { object: Box<Expr>, name: Token },
     /// Grouping expressions are expressions that group other expressions together.
     /// ## Example
     /// ```
     /// (1 + 2)
     /// ```
-    GroupingExpression {
-        expression: Box<Expr>,
-    },
+    GroupingExpression { expression: Box<Expr> },
     /// Literal expressions are expressions that are literals.
     /// ## Example
     /// ```
     /// 1
     /// ```
-    LiteralExpression {
-        value: Option<Literal>,
-    },
+    LiteralExpression { value: Option<Literal> },
     /// Logical expressions are expressions that are logical.
     /// ## Example
     /// ```
@@ -73,43 +66,31 @@ pub enum Expr {
     /// ```
     /// super.method();
     /// ```
-    SuperExpression {
-        keyword: Token,
-        method: Token,
-    },
+    SuperExpression { keyword: Token, method: Token },
     /// Self expressions are expressions that call a method on the current class.
     /// ## Example
     /// ```
     /// self.method();
     /// ```
-    SelfExpression {
-        keyword: Token,
-    },
+    SelfExpression { keyword: Token },
     /// Unary expressions are expressions that have a single side and an operator.
     /// ## Example
     /// ```
     /// !true
     /// ```
-    UnaryExpression {
-        operator: Token,
-        right: Box<Expr>,
-    },
+    UnaryExpression { operator: Token, right: Box<Expr> },
     /// Variable expressions are expressions that are variables.
     /// ## Example
     /// ```
     /// var x = 1;
     /// ```
-    VarDeclExpression {
-        name: Token,
-    },
+    VarDeclExpression { name: Token },
     /// Variable resolution expressions are expressions that resolve a variable.
     /// ## Example
     /// ```
     /// x
     /// ```
-    VariableResolutionExpression {
-        name: Token,
-    },
+    VariableResolutionExpression { name: Token },
     /// Assign expressions are expressions that assign a value to a variable.
     /// ## Example
     /// ```

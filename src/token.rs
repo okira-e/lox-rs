@@ -16,8 +16,12 @@ pub struct Token {
 
 impl Token {
     pub fn to_string(&self) -> String {
-        return format!("{}, type: {:?}, literal: {}", &self.lexeme, &self.kind, self.literal.clone()
-            .unwrap_or(Literal::Nil).to_string());
+        return format!(
+            "{}, type: {:?}, literal: {}",
+            &self.lexeme,
+            &self.kind,
+            self.literal.clone().unwrap_or(Literal::Nil).to_string()
+        );
     }
 }
 
