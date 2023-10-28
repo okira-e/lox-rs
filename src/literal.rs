@@ -26,27 +26,29 @@ impl std::ops::Add for Literal {
     type Output = Result<Self, Cow<'static, str>>;
 
     fn add<'a>(self, rhs: Self) -> Self::Output {
-        let err_msg: Cow<'static, str> =
-            format!("Operands of type {} and {} cannot be added.",
-                    self.to_string(),
-                    rhs.to_string()).into();
+        let err_msg: Cow<'static, str> = format!(
+            "Operands of type {} and {} cannot be added.",
+            self.to_string(),
+            rhs.to_string()
+        )
+        .into();
 
         match self {
             Literal::Number(left) => {
                 return match rhs {
                     Literal::Number(right) => Ok(Literal::Number(left + right)),
                     Literal::String(right) => Ok(Literal::String(left.to_string() + &right)),
-                    _ => Err(err_msg)
+                    _ => Err(err_msg),
                 };
             }
             Literal::String(left) => {
                 return match rhs {
                     Literal::Number(right) => Ok(Literal::String(left + &right.to_string())),
                     Literal::String(right) => Ok(Literal::String(left + &right)),
-                    _ => Err(err_msg)
+                    _ => Err(err_msg),
                 };
             }
-            _ => Err(err_msg)
+            _ => Err(err_msg),
         }
     }
 }
@@ -55,10 +57,12 @@ impl std::ops::Sub for Literal {
     type Output = Result<Self, Cow<'static, str>>;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let err_msg =
-            format!("Operands of type {} and {} cannot be subtracted.",
-                    self.to_string(),
-                    rhs.to_string()).into();
+        let err_msg = format!(
+            "Operands of type {} and {} cannot be subtracted.",
+            self.to_string(),
+            rhs.to_string()
+        )
+        .into();
 
         match self {
             Literal::Number(left) => {
@@ -76,8 +80,12 @@ impl std::ops::Mul for Literal {
     type Output = Result<Self, Cow<'static, str>>;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let err_msg =
-            format!("Operands of type {} and {} cannot be multiplied.", self.to_string(), rhs.to_string()).into();
+        let err_msg = format!(
+            "Operands of type {} and {} cannot be multiplied.",
+            self.to_string(),
+            rhs.to_string()
+        )
+        .into();
 
         match self {
             Literal::Number(left) => {
@@ -95,8 +103,12 @@ impl std::ops::Div for Literal {
     type Output = Result<Self, Cow<'static, str>>;
 
     fn div(self, rhs: Self) -> Self::Output {
-        let invalid_types_err_msg =
-            format!("Operands of type {} and {} cannot be divided.", self.to_string(), rhs.to_string()).into();
+        let invalid_types_err_msg = format!(
+            "Operands of type {} and {} cannot be divided.",
+            self.to_string(),
+            rhs.to_string()
+        )
+        .into();
 
         match self {
             Literal::Number(left) => {
@@ -120,10 +132,12 @@ impl std::ops::Rem for Literal {
     type Output = Result<Self, Cow<'static, str>>;
 
     fn rem(self, rhs: Self) -> Self::Output {
-        let err_msg =
-            format!("Operands of type {} and {} cannot be divided for remainder.",
-                    self.to_string(),
-                    rhs.to_string()).into();
+        let err_msg = format!(
+            "Operands of type {} and {} cannot be divided for remainder.",
+            self.to_string(),
+            rhs.to_string()
+        )
+        .into();
 
         match self {
             Literal::Number(left) => {
@@ -141,8 +155,11 @@ impl std::ops::Neg for Literal {
     type Output = Result<Self, Cow<'static, str>>;
 
     fn neg(self) -> Self::Output {
-        let err_msg =
-            format!("Operand of type {} cannot be negated with \"-\".", self.to_string()).into();
+        let err_msg = format!(
+            "Operand of type {} cannot be negated with \"-\".",
+            self.to_string()
+        )
+        .into();
 
         match self {
             Literal::Number(n) => Ok(Literal::Number(-n)),
@@ -155,8 +172,11 @@ impl std::ops::Not for Literal {
     type Output = Result<Self, Cow<'static, str>>;
 
     fn not(self) -> Self::Output {
-        let err_msg =
-            format!("Operand of type {} cannot be negated with \"!\".", self.to_string()).into();
+        let err_msg = format!(
+            "Operand of type {} cannot be negated with \"!\".",
+            self.to_string()
+        )
+        .into();
 
         match self {
             Literal::Boolean(b) => Ok(Literal::Boolean(!b)),
