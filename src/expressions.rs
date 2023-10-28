@@ -2,17 +2,8 @@ use crate::literal::Literal;
 use crate::token::Token;
 
 /// A trait that represents an expression in the AST.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
-    /// Assign expressions are expressions that assign a value to a variable.
-    /// ## Example
-    /// ```
-    /// var x = 1;
-    /// ```
-    AssignExpression {
-        name: Token,
-        value: Box<Expr>,
-    },
     /// Binary expressions are expressions that have a left and right side, and an operator in between.
     /// ## Example
     /// ```
@@ -111,7 +102,18 @@ pub enum Expr {
     VarDeclExpression {
         name: Token,
     },
+    /// Variable resolution expressions are expressions that resolve a variable.
+    /// ## Example
+    /// ```
+    /// x
+    /// ```
     VariableResolutionExpression {
         name: Token,
     },
+    /// Assign expressions are expressions that assign a value to a variable.
+    /// ## Example
+    /// ```
+    /// x = 1;
+    /// ```
+    AssignmentExpression { name: Token, value: Box<Expr> },
 }
