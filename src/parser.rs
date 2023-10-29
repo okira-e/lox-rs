@@ -26,7 +26,9 @@ use crate::token_kinds::TokenKind;
 /// * unary                 → ( "!" | "-" ) unary | primary ;
 /// * primary               → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER ;
 ///
-/// Note: `(a)*` means 0 or more of a.
+/// Note: 
+/// * `(a)*` means 0 or more of a.
+/// * `?` means that it is optional.
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
