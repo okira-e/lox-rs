@@ -12,8 +12,7 @@ pub struct Tokenizer<'a> {
     current_char: usize,
     line: usize,
     column: usize,
-    // NOTE: Set but not currently used.
-    errors: Vec<Error>,
+    errors: Vec<Error>, // NOTE: Set but not currently used.
 }
 
 impl<'a> Tokenizer<'a> {

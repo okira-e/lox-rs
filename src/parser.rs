@@ -265,7 +265,7 @@ impl<'a> Parser<'a> {
     }
 
     fn unary_rule(&mut self) -> Box<Expr> {
-        // TODO: This currently doesn't support multiple unary operators in a row like `!!true`.
+        // FIX: This currently doesn't support multiple unary operators in a row like `!!true`.
         if self.tokens[self.current].kind == TokenKind::Bang
             || self.tokens[self.current].kind == TokenKind::Minus
         {

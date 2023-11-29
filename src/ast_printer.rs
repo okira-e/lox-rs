@@ -2,7 +2,7 @@ use crate::expressions::Expr;
 use crate::literal::Literal;
 use crate::stmt::Stmt;
 
-// TODO: Fix printing for statements. Pretty printing is currently disabled.
+// FIX: printing for statements. Pretty printing is currently disabled.
 pub fn print_ast(statement: &Stmt) -> String {
     return print_stmt(statement);
 }

@@ -37,7 +37,7 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
             env.insert(Box::new(name.clone().lexeme), value);
         }
         Stmt::AssignmentStmt {
-            // TODO: `a = b = 5;` is not currently allowed.
+            // FIX: `a = b = 5;` is not currently allowed.
             name,
             value,
         } => {
