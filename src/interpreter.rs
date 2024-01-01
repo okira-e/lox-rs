@@ -13,9 +13,15 @@ pub fn interpret(statements: &Vec<Stmt>) {
     let mut env = HashMap::<Box<String>, Literal>::new();
 
     for statement in statements {
+        let mut do_break = false;
         execute(Box::new(statement), &mut env).unwrap_or_else(|err| {
             report_error(&err);
+            do_break = true;
         });
+
+        if do_break {
+            break;
+        }
     }
 }
 
