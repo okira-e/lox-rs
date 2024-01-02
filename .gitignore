@@ -3,3 +3,5 @@
 # IDEs
 .idea
 .vscode
+
+/lox/test.lox
