@@ -1,4 +1,4 @@
-# Lox-rs Programming Language in Rust
+# The Lox Programming Language in Rust
 
 This repository provides an implementation of the Lox programming language in Rust, following the guidance from the "Crafting Interpreters" book by Robert Nystrom. Lox is a dynamically-typed, object-oriented programming language that is simple to understand, making it an excellent language for learning about language design and implementation.
 
