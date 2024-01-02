@@ -44,21 +44,29 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
         }
         Stmt::AssignmentStmt {
             // FIX: `a = b = 5;` is not currently allowed.
-            name,
-            value,
+            expression
         } => {
-            if !env.contains_key(&name.lexeme) {
+            if let Expr::AssignmentExpression { name, value } = expression.as_ref() {
+                if !env.contains_key(&name.lexeme) {
+                    return Err(Error {
+                        msg: format!("Assignment of undeclared variable \"{}\".", name.lexeme),
+                        line: Some(name.line),
+                        column: 0,
+                        hint: None,
+                    });
+                }
+
+                let value = evaluate(value, env)?;
+
+                env.insert(Box::new(name.clone().lexeme), value);
+            } else {
                 return Err(Error {
-                    msg: format!("Assignment of undeclared variable \"{}\".", name.lexeme),
-                    line: Some(name.line),
+                    msg: format!("Invalid assignment."),
+                    line: Some(0),
                     column: 0,
                     hint: None,
                 });
             }
-
-            let value = evaluate(value, env)?;
-
-            env.insert(Box::new(name.clone().lexeme), value);
         }
         Stmt::BlockStmt { statements } => {
             todo!();

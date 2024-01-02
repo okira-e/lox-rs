@@ -96,9 +96,7 @@ fn run(input: &str, run_mode: RunMode) {
         }
     }
 
-    // for statement in &statements {
-    //     println!("\nAST: {}\n", ast_printer::print_ast(statement));
-    // }
+    ast_printer::print_ast(&statements);
 
     interpreter::interpret(&statements);
 }

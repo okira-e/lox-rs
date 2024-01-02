@@ -3,19 +3,22 @@ use crate::token::Token;
 
 #[derive(Debug, PartialEq)]
 pub enum Stmt {
+    /// Represents an expression wrapped in a statement.
     ExpressionStmt {
         expression: Box<Expr>,
     },
+    /// Represents a print statement.
     PrintStmt {
         expression: Box<Expr>,
     },
+    /// Represents a variable declaration.
     VarDeclStmt {
         name: Token,
         initializer: Expr,
     },
+    /// Represents an assignment statement.
     AssignmentStmt {
-        name: Token,
-        value: Box<Expr>,
+        expression: Box<Expr>,
     },
     BlockStmt {
         statements: Vec<Stmt>,
