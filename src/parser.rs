@@ -11,14 +11,14 @@ use crate::token_kinds::TokenKind;
 ///
 /// ## Grammar:
 /// * program               → complete_statement* EOF ;
-/// * complete_statement    → declaration ";" ;
-/// * declaration           → varDecl | statement ;
-/// * varDecl               → "var" IDENTIFIER ("=" expression)? ;
-/// * statement             → exprStmt | printStmt ;
-/// * exprStmt              → expression ;
+/// * declaration           → varDecl | statement ";" ;
+/// * varDecl               → "var" IDENTIFIER ("=" expression)? ";" ;
+/// * statement             → printStmt | blockStmt | expressionStmt ";" ;
 /// * printStmt             → "print" expression ;
+/// * blockStmt             → "{" declaration* "}" ;
+/// * expressionStmt        → expression ";" ;
 /// * expression            → assignment ;
-/// * assignment            → IDENTIFIER "=" assignment | equality ;
+/// * assignment            → IDENTIFIER "=" equality ;
 /// * equality              → comparison ( ( "!=" | "==" ) comparison )* ;
 /// * comparison            → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 /// * term                  → factor ( ( "-" | "+" ) factor )* ;
@@ -50,38 +50,22 @@ impl<'a> Parser<'a> {
         let mut statements = Vec::<Stmt>::new();
 
         while !self.is_at_end() {
-            statements.push(self.complete_statement_rule());
+            statements.push(self.declaration_rule());
         }
 
         return statements;
     }
 
-    fn complete_statement_rule(&mut self) -> Stmt {
-        let stmt = self.declaration_rule();
-
-        if self.tokens[self.current].kind != TokenKind::Semicolon {
-            let err = Error::new(
-                "Expected \";\" after statement.".into(),
-                Some(self.previous().line),
-                self.tokens[self.current].column,
-                None,
-            );
-
-            report_error(&err);
-
-            self.errors.push(err);
-        } else {
-            self.advance();
-        }
-
-        return stmt;
-    }
 
     fn declaration_rule(&mut self) -> Stmt {
         return if self.current_token().kind == TokenKind::Var {
-            self.var_declaration_rule()
+            let ret = self.var_declaration_rule();
+
+            self.consume_semicolon();
+
+            return ret;
         } else {
-            self.statement_rule()
+            return self.statement_rule();
         };
     }
 
@@ -115,13 +99,37 @@ impl<'a> Parser<'a> {
 
         self.advance(); // current is "=" or ";"
 
-        let value = if self.current_token().kind == TokenKind::Equal {
+        let value;
+        if self.current_token().kind == TokenKind::Equal {
             self.advance();
 
-            self.expression_rule()
+            value = self.expression_rule();
+        } else if self.current_token().kind == TokenKind::Semicolon {
+
+            value = Box::new(Expr::LiteralExpression { value: None });
+
         } else {
-            Box::new(Expr::LiteralExpression { value: None })
-        };
+            let err = Error::new(
+                "Expected \"=\" or \";\" after variable declaration.".into(),
+                Some(self.previous().line),
+                self.previous().column,
+                None,
+            );
+
+            report_error(&err);
+
+            self.errors.push(err);
+
+            self.synchronise();
+
+            // Not sure what to return here. We need to return a Stmt, but we don't have one.
+            return Stmt::VarDeclStmt {
+                name: self.previous().clone(),
+                initializer: Expr::LiteralExpression {
+                    value: Some(Literal::Nil),
+                },
+            };
+        }
 
         return Stmt::VarDeclStmt {
             name: Token {
@@ -135,22 +143,53 @@ impl<'a> Parser<'a> {
         };
     }
 
+    /// Parses a statement based on the current token.
     fn statement_rule(&mut self) -> Stmt {
-        return if self.current_token().kind == TokenKind::Print {
-            // Print statement.
-            self.print_statement_rule()
+        if self.current_token().kind == TokenKind::Print {
+            let ret = self.print_statement_rule();
+
+            self.consume_semicolon();
+
+            return ret;
+        } else if self.current_token().kind == TokenKind::LeftBrace {
+            // Block statement.
+            self.advance();
+
+            let mut statements = Vec::<Stmt>::new();
+
+            while self.current_token().kind != TokenKind::RightBrace && !self.is_at_end() {
+                statements.push(self.declaration_rule()); // Test this against complete_statement_rule().
+            }
+
+            if self.current_token().kind != TokenKind::RightBrace {
+                let err = Error::new(
+                    "Expected \"}\" after block.".into(),
+                    Some(self.previous().line),
+                    self.previous().column,
+                    None,
+                );
+
+                report_error(&err);
+
+                self.errors.push(err);
+            } else {
+                self.advance();
+            }
+
+            return Stmt::BlockStmt { statements };
         } else if self.peek().kind == TokenKind::Equal {
             // Assignment statement.
             let ret = Stmt::AssignmentStmt {
-                name: self.current_token().clone(),
-                value: self.assignment_rule(),
+                expression: self.assignment_rule(),
             };
+
+            self.consume_semicolon();
 
             return ret;
         } else {
             // Expression statement. An expression wrapped in a statement.
-            self.expression_statement_rule()
-        };
+            return self.expression_statement_rule();
+        }
     }
 
     fn print_statement_rule(&mut self) -> Stmt {
@@ -163,6 +202,8 @@ impl<'a> Parser<'a> {
 
     fn expression_statement_rule(&mut self) -> Stmt {
         let expr = self.expression_rule();
+
+        self.consume_semicolon();
 
         return Stmt::ExpressionStmt { expression: expr };
     }
@@ -265,7 +306,6 @@ impl<'a> Parser<'a> {
     }
 
     fn unary_rule(&mut self) -> Box<Expr> {
-        // FIX: This currently doesn't support multiple unary operators in a row like `!!true`.
         if self.tokens[self.current].kind == TokenKind::Bang
             || self.tokens[self.current].kind == TokenKind::Minus
         {
@@ -346,6 +386,26 @@ impl<'a> Parser<'a> {
     /// to the next one.
     fn synchronise(&mut self) {
         while self.current_token().kind != TokenKind::Semicolon {
+            self.advance();
+        }
+    }
+
+    /// Consumes a semicolon. If there is no semicolon, it will report an error.
+    fn consume_semicolon(&mut self) {
+        if self.current_token().kind != TokenKind::Semicolon {
+            let err = Error::new(
+                "Expected \";\" after expression.".into(),
+                // BUG: Line is currently incorrectly reported.
+                // Mayhaps we should think of when to advance the token and when to just peek.
+                Some(self.previous().line),
+                self.current_token().column,
+                None,
+            );
+
+            report_error(&err);
+
+            self.errors.push(err);
+        } else {
             self.advance();
         }
     }

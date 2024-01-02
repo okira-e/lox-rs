@@ -7,10 +7,11 @@ use crate::token_kinds::TokenKind;
 use std::collections::HashMap;
 use std::io::Write;
 
-type Env = HashMap<Box<String>, Literal>;
+type Env = Vec<HashMap<String, Literal>>;
 
 pub fn interpret(statements: &Vec<Stmt>) {
-    let mut env = HashMap::<Box<String>, Literal>::new();
+    let mut env = Env::new();
+    env.push(HashMap::new());
 
     for statement in statements {
         let mut do_break = false;
@@ -27,11 +28,14 @@ pub fn interpret(statements: &Vec<Stmt>) {
 
 /// Executes the given statement.
 fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
-    match stmt.as_ref() {
+    return match stmt.as_ref() {
         Stmt::VarDeclStmt { name, initializer } => {
-            let value = evaluate(initializer, env)?;
+            let value = evaluate(initializer, env);
+            if value.is_err() {
+                return Err(value.err().unwrap());
+            }
 
-            if env.contains_key(&name.lexeme) {
+            if get_symbol_in_scope(env, &name.lexeme).is_some() {
                 return Err(Error {
                     msg: format!("Variable \"{}\" already declared.", name.lexeme),
                     line: Some(name.line),
@@ -40,14 +44,15 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
                 });
             }
 
-            env.insert(Box::new(name.clone().lexeme), value);
+            add_symbol_to_current_scope(env, name.clone().lexeme, value.unwrap());
+            return Ok(());
         }
         Stmt::AssignmentStmt {
             // FIX: `a = b = 5;` is not currently allowed.
             expression
         } => {
             if let Expr::AssignmentExpression { name, value } = expression.as_ref() {
-                if !env.contains_key(&name.lexeme) {
+                if !get_symbol_in_scope(env, &name.lexeme).is_some() {
                     return Err(Error {
                         msg: format!("Assignment of undeclared variable \"{}\".", name.lexeme),
                         line: Some(name.line),
@@ -56,9 +61,14 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
                     });
                 }
 
-                let value = evaluate(value, env)?;
+                let value = evaluate(value, env);
+                if value.is_err() {
+                    return Err(value.err().unwrap());
+                }
 
-                env.insert(Box::new(name.clone().lexeme), value);
+                add_symbol_to_current_scope(env, name.clone().lexeme, value.unwrap());
+
+                return Ok(());
             } else {
                 return Err(Error {
                     msg: format!("Invalid assignment."),
@@ -69,33 +79,52 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
             }
         }
         Stmt::BlockStmt { statements } => {
-            todo!();
+            env.push(HashMap::new());
+
+            for statement in statements {
+                execute(Box::new(statement), env)?;
+            }
+
+            env.pop();
+
+            return Ok(());
         }
         Stmt::ClassStmt {
             methods,
             name,
             superclass,
         } => {
-            todo!();
+            return todo!();
         }
         Stmt::ExpressionStmt { expression } => {
-            evaluate(expression, env)?;
+            return match evaluate(expression, env) {
+                Ok(_) => {
+                    return Ok(());
+                }
+                Err(err) => {
+                    return Err(err);
+                }
+            };
         }
         Stmt::FunctionStmt { name, params, body } => {
-            todo!();
+            return todo!();
         }
         Stmt::IfStmt {
             condition,
             then_branch,
             else_branch,
         } => {
-            todo!();
+            return todo!();
         }
         Stmt::PrintStmt { expression } => {
             let mut stdout = std::io::stdout();
 
-            let err = stdout.write(format!("{}", evaluate(expression, env)?.to_string()).as_ref());
-            return match err {
+            let value = evaluate(expression, env);
+            if value.is_err() {
+                return Err(value.err().unwrap());
+            }
+
+            /* return */ match stdout.write(format!("{}\n", value.unwrap().to_string()).as_ref()) {
                 Ok(_) => Ok(()),
                 Err(_) => {
                     return Err(Error {
@@ -105,17 +134,15 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
                         hint: None,
                     });
                 }
-            };
+            }
         }
         Stmt::ReturnStmt { keyword, value } => {
-            todo!();
+            return todo!();
         }
         Stmt::WhileStmt { condition, body } => {
-            todo!();
+            return todo!();
         }
     }
-
-    Ok(())
 }
 
 /// Evaluates the given expression.
@@ -184,10 +211,10 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                                 Ok(Literal::Number(right)) => {
                                     match operator.kind {
                                         TokenKind::Minus => {
-                                            return Ok(Literal::Number(left - right))
+                                            return Ok(Literal::Number(left - right));
                                         }
                                         TokenKind::Star => {
-                                            return Ok(Literal::Number(left * right))
+                                            return Ok(Literal::Number(left * right));
                                         }
                                         TokenKind::Slash => {
                                             if right == 0f64 {
@@ -367,14 +394,16 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
             };
         }
         Expr::VariableResolutionExpression { name } => {
-            return match env.get(&name.clone().lexeme) {
+            return match get_symbol_in_scope(env, &name.lexeme) {
                 Some(value) => Ok(value.clone()),
-                None => Err(Error {
-                    msg: format!("Usage of undeclared variable \"{}\".", name.lexeme),
-                    line: Some(name.line),
-                    column: 0,
-                    hint: None,
-                }),
+                None => {
+                    return Err(Error {
+                        msg: format!("Usage of undeclared variable \"{}\".", name.lexeme),
+                        line: Some(name.line),
+                        column: 0,
+                        hint: None,
+                    });
+                },
             };
         }
         Expr::CallExpression {
@@ -445,6 +474,30 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
             todo!();
         }
     }
+}
+
+/// Evaluates the given variable name.
+fn get_symbol_in_scope<'a>(env: &'a Env, name: &String) -> Option<&'a Literal> {
+    let mut i = if env.len() == 0 { 0 } else { env.len() - 1 };
+    while i >= 0 {
+        if env[i].contains_key(name) {
+            return env[i].get(name);
+        }
+
+        if i == 0 {
+            break;
+        }
+
+        i -= 1;
+    }
+
+    return None;
+}
+
+/// Adds the given symbol to the current scope.
+fn add_symbol_to_current_scope(env: &mut Env, name: String, value: Literal) {
+    let i = env.len() - 1;
+    env[i].insert(name, value);
 }
 
 #[cfg(test)]
@@ -727,12 +780,13 @@ mod tests {
                 },
             };
 
-            let mut env = HashMap::<Box<String>, Literal>::new();
+            let mut env = Env::new();
+            env.push(HashMap::new());
 
             execute(Box::new(&stmt), &mut env).unwrap();
 
             assert_eq!(
-                env.get(&"a".to_string()).unwrap(),
+                get_symbol_in_scope(&env, &"a".into()).unwrap(),
                 &Literal::Number(1.into())
             );
         }

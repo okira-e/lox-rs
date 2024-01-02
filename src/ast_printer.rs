@@ -28,14 +28,13 @@ fn print_stmt(statement: &Stmt) -> String {
         Stmt::BlockStmt { statements } => {
             let mut ret = String::new();
 
+            ret += "{\n";
             for statement in statements {
+                ret += "\t";
                 ret += print_stmt(statement).as_str();
                 ret += "\n";
             }
-            // Remove the last newline
-            if ret.len() > 0 {
-                ret.pop();
-            }
+            ret += "}";
 
             return ret;
         }
@@ -281,6 +280,6 @@ mod tests {
             ],
         };
 
-        assert_eq!(print_stmt(&stmt), "var a = 1\nvar b = 2");
+        assert_eq!(print_stmt(&stmt), "{\n\tvar a = 1\n\tvar b = 2\n}");
     }
 }
