@@ -3,11 +3,16 @@ use crate::literal::Literal;
 use crate::stmt::Stmt;
 
 pub fn print_ast(statements: &Vec<Stmt>) {
-    println!("AST:");
+    println!("/////////////////////////////////");
+    println!("// AST //////////////////////////");
+    println!("/////////////////////////////////");
     for statement in statements {
         let str = print_stmt(statement);
         println!("{}", str);
     }
+    println!("/////////////////////////////////");
+    println!("// END AST //////////////////////");
+    println!("/////////////////////////////////");
     println!();
 }
 
@@ -38,8 +43,8 @@ fn print_stmt(statement: &Stmt) -> String {
 
             return ret;
         }
-        Stmt::IfStmt { .. } => {
-            return todo!();
+        Stmt::IfStmt { condition, then_branch, else_branch } => {
+            return format!("\nif \n\t{:?} then \n\t{:?}\n else \n\t{:?}\n", condition, then_branch, else_branch);
         }
         Stmt::WhileStmt { .. } => {
             return todo!();
@@ -53,6 +58,7 @@ fn print_stmt(statement: &Stmt) -> String {
         Stmt::ClassStmt { .. } => {
             return todo!();
         }
+        Stmt::None { err } => err.into(),
     };
 }
 
