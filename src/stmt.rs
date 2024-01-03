@@ -46,4 +46,7 @@ pub enum Stmt {
         methods: Vec<Stmt>,
         superclass: Option<Box<Expr>>,
     },
+    None {
+        err: String,
+    } // This is for when there is an error and the parser cannot logically return a Stmt.
 }
