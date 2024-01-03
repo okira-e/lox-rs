@@ -13,7 +13,8 @@ use crate::token_kinds::TokenKind;
 /// * program               → complete_statement* EOF ;
 /// * declaration           → varDecl | statement ";" ;
 /// * varDecl               → "var" IDENTIFIER ("=" expression)? ";" ;
-/// * statement             → printStmt | blockStmt | expressionStmt ";" ;
+/// * statement             → ifStmt | printStmt | blockStmt | expressionStmt ";" ;
+/// * ifStmt                → "if" expression "{" statement* "}" ( "else" "{" statement* "}" )? ;
 /// * printStmt             → "print" expression ;
 /// * blockStmt             → "{" declaration* "}" ;
 /// * expressionStmt        → expression ";" ;
@@ -26,7 +27,7 @@ use crate::token_kinds::TokenKind;
 /// * unary                 → ( "!" | "-" ) unary | primary ;
 /// * primary               → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER ;
 ///
-/// Note: 
+/// Note:
 /// * `(a)*` means 0 or more of a.
 /// * `?` means that it is optional.
 pub struct Parser<'a> {
@@ -55,7 +56,6 @@ impl<'a> Parser<'a> {
 
         return statements;
     }
-
 
     fn declaration_rule(&mut self) -> Stmt {
         return if self.current_token().kind == TokenKind::Var {
@@ -105,9 +105,7 @@ impl<'a> Parser<'a> {
 
             value = self.expression_rule();
         } else if self.current_token().kind == TokenKind::Semicolon {
-
             value = Box::new(Expr::LiteralExpression { value: None });
-
         } else {
             let err = Error::new(
                 "Expected \"=\" or \";\" after variable declaration.".into(),
@@ -145,7 +143,9 @@ impl<'a> Parser<'a> {
 
     /// Parses a statement based on the current token.
     fn statement_rule(&mut self) -> Stmt {
-        if self.current_token().kind == TokenKind::Print {
+        if self.current_token().kind == TokenKind::If {
+            return self.if_statement_rule();
+        } else if self.current_token().kind == TokenKind::Print {
             let ret = self.print_statement_rule();
 
             self.consume_semicolon();
@@ -153,30 +153,7 @@ impl<'a> Parser<'a> {
             return ret;
         } else if self.current_token().kind == TokenKind::LeftBrace {
             // Block statement.
-            self.advance();
-
-            let mut statements = Vec::<Stmt>::new();
-
-            while self.current_token().kind != TokenKind::RightBrace && !self.is_at_end() {
-                statements.push(self.declaration_rule()); // Test this against complete_statement_rule().
-            }
-
-            if self.current_token().kind != TokenKind::RightBrace {
-                let err = Error::new(
-                    "Expected \"}\" after block.".into(),
-                    Some(self.previous().line),
-                    self.previous().column,
-                    None,
-                );
-
-                report_error(&err);
-
-                self.errors.push(err);
-            } else {
-                self.advance();
-            }
-
-            return Stmt::BlockStmt { statements };
+            return self.block_statement_rule();
         } else if self.peek().kind == TokenKind::Equal {
             // Assignment statement.
             let ret = Stmt::AssignmentStmt {
@@ -190,6 +167,73 @@ impl<'a> Parser<'a> {
             // Expression statement. An expression wrapped in a statement.
             return self.expression_statement_rule();
         }
+    }
+
+    fn block_statement_rule(&mut self) -> Stmt {
+        self.advance();
+
+        let mut statements = Vec::<Stmt>::new();
+
+        while self.current_token().kind != TokenKind::RightBrace && !self.is_at_end() {
+            statements.push(self.declaration_rule()); // Test this against complete_statement_rule().
+        }
+
+        if self.current_token().kind != TokenKind::RightBrace {
+            let err = Error::new(
+                "Expected \"}\" after block.".into(),
+                Some(self.previous().line),
+                self.previous().column,
+                None,
+            );
+
+            report_error(&err);
+
+            self.errors.push(err);
+        } else {
+            self.advance();
+        }
+
+        return Stmt::BlockStmt { statements };
+    }
+
+    /// Rule for tradition if statement `if condition { statements } else { statements }`.
+    fn if_statement_rule(&mut self) -> Stmt {
+        self.advance();
+
+        let expr_condition = self.expression_rule();
+
+        if self.current_token().kind != TokenKind::LeftBrace {
+            let err_msg = "Expected \"{\" after block.".to_string();
+            let err = Error::new(
+                err_msg.clone(),
+                Some(self.previous().line),
+                self.previous().column,
+                None,
+            );
+
+            report_error(&err);
+
+            self.errors.push(err);
+
+            return Stmt::None {err: err_msg};
+        }
+
+        let if_body = Box::new(self.block_statement_rule());
+
+        let else_branch;
+        if !self.is_at_end() && self.current_token().kind == TokenKind::Else {
+            self.advance(); // Advances from "else" to "{"
+
+            else_branch = Some(Box::new(self.block_statement_rule()))
+        } else {
+            else_branch = None
+        };
+
+        return Stmt::IfStmt {
+            condition: expr_condition,
+            then_branch: if_body,
+            else_branch,
+        };
     }
 
     fn print_statement_rule(&mut self) -> Stmt {
@@ -427,23 +471,32 @@ impl<'a> Parser<'a> {
     /// Get the next token without advancing the current token.
     fn peek(&self) -> &Token {
         return self.tokens.get(self.current + 1).unwrap_or_else(|| {
-            println!("Error getting token at index {}.", self.current + 1);
-            std::process::exit(1);
+            panic!(
+                "Error peeking token. Current token is: {}, and is at index: {}",
+                self.current_token(),
+                self.current - 1
+            );
         });
     }
 
     fn current_token(&self) -> &Token {
         return self.tokens.get(self.current).unwrap_or_else(|| {
-            println!("Error getting token at index {}.", self.current);
-            std::process::exit(1);
+            panic!(
+                "Error getting current token. Previous token is: {}, and is at index: {}",
+                self.previous(),
+                self.current - 1
+            );
         });
     }
 
     /// Get the previous token.
     fn previous(&self) -> &Token {
         return self.tokens.get(self.current - 1).unwrap_or_else(|| {
-            println!("Error getting token at index {}.", self.current - 1);
-            std::process::exit(1);
+            panic!(
+                "Error getting previous token. Current token is: {}, and is at index: {}",
+                self.current_token(),
+                self.current - 1
+            );
         });
     }
 }

@@ -49,7 +49,7 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
         }
         Stmt::AssignmentStmt {
             // FIX: `a = b = 5;` is not currently allowed.
-            expression
+            expression,
         } => {
             if let Expr::AssignmentExpression { name, value } = expression.as_ref() {
                 if !get_symbol_in_scope(env, &name.lexeme).is_some() {
@@ -114,7 +114,42 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
             then_branch,
             else_branch,
         } => {
-            return todo!();
+            let bool_condition = evaluate(condition, env)?;
+
+            let mut success = false;
+
+            match bool_condition {
+                Literal::Number(val) => {
+                    if val == 0f64 {
+                        success = false;
+                    } else {
+                        success = true;
+                    }
+                }
+                Literal::String(val) => {
+                    if val == "".to_string() {
+                        success = false;
+                    } else {
+                        success = true;
+                    }
+                }
+                Literal::Boolean(val) => {
+                    success = val;
+                }
+                Literal::Nil => {
+                    success = false;
+                }
+            }
+
+            if success {
+                execute(Box::new(&**then_branch), env)?;
+            } else {
+                if let Some(else_body) = else_branch {
+                    execute(Box::new(*&else_body), env)?;
+                }
+            }
+
+            return Ok(());
         }
         Stmt::PrintStmt { expression } => {
             let mut stdout = std::io::stdout();
@@ -124,7 +159,8 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
                 return Err(value.err().unwrap());
             }
 
-            /* return */ match stdout.write(format!("{}\n", value.unwrap().to_string()).as_ref()) {
+            /* return */
+            match stdout.write(format!("{}\n", value.unwrap().to_string()).as_ref()) {
                 Ok(_) => Ok(()),
                 Err(_) => {
                     return Err(Error {
@@ -142,7 +178,15 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
         Stmt::WhileStmt { condition, body } => {
             return todo!();
         }
-    }
+        Stmt::None { err } => {
+            return Err(Error {
+                msg: err.to_owned(),
+                line: None,
+                column: 0,
+                hint: None,
+            });
+        }
+    };
 }
 
 /// Evaluates the given expression.
@@ -403,7 +447,7 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                         column: 0,
                         hint: None,
                     });
-                },
+                }
             };
         }
         Expr::CallExpression {
