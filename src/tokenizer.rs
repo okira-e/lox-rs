@@ -152,7 +152,7 @@ impl<'a> Tokenizer<'a> {
                         self.advance();
                     }
 
-                    if self.peek() == '.' && self.peek_next().is_numeric() {
+                    if self.peek() == '.' && self.peek_next_char().is_numeric() {
                         self.advance();
 
                         while self.peek().is_numeric() {
@@ -194,7 +194,20 @@ impl<'a> Tokenizer<'a> {
 
                     let value: &str = self.source[self.start_of_lexeme..self.current_char].into();
 
-                    let kind = self.match_keyword(value);
+                    let mut kind = self.match_keyword(value);
+
+                    // Continue matching for reserved words that consist of more than one word. E.g. `else if`.
+                    if kind == TokenKind::Else {
+                        if let Some(next_word) = self.peek_next_word() {
+                            if next_word == "if" {
+                                kind = TokenKind::ElseIf;
+                                // Advance the two next characters.
+                                self.advance();
+                                self.advance();
+                                self.advance();
+                            }
+                        }
+                    }
 
                     self.add_token(kind, None);
                 } else {
@@ -308,12 +321,29 @@ impl<'a> Tokenizer<'a> {
     }
 
     /// peek_next returns the next character the Tokenizer's at without consuming it.
-    fn peek_next(&self) -> char {
+    fn peek_next_char(&self) -> char {
         if self.current_char + 1 >= self.source.len() {
             return '\0';
         }
 
         return self.source.chars().nth(self.current_char + 1).unwrap();
+    }
+
+    /// peek_next_word returns the next word without consuming it.
+    fn peek_next_word(&self) -> Option<String> {
+        let mut ret = String::new();
+        let mut current = self.current_char + 1;
+        if !self.is_at_end() {
+            while self.source.chars().nth(current)? != ' ' {
+                ret.push(self.source.chars().nth(current).unwrap());
+
+                current += 1;
+            }
+
+            return Some(ret);
+        }
+
+        return None;
     }
 
     /// Checks if the Tokenizer is at the end of the source code.

@@ -43,8 +43,18 @@ fn print_stmt(statement: &Stmt) -> String {
 
             return ret;
         }
-        Stmt::IfStmt { condition, then_branch, else_branch } => {
-            return format!("\nif \n\t{:?} then \n\t{:?}\n else \n\t{:?}\n", condition, then_branch, else_branch);
+        Stmt::IfStmt { condition, then_branch, else_if_branches, else_branch } => {
+            let mut ret = String::new();
+            ret.push_str(format!("\nif \n\t{:?} then \n\t{:?}", condition, then_branch).as_str());
+
+            for else_if_branch in else_if_branches.iter() {
+                if let Stmt::IfStmt { condition: else_if_condition, then_branch: else_if_then_branch, .. } = else_if_branch.as_ref() {
+                    ret.push_str(format!("\n else if \n\t{:?} then \n\t{:?}", else_if_condition, else_if_then_branch).as_str());
+                }
+            }
+
+            ret.push_str(format!("\n else \n\t{:?}\n", else_branch).as_str());
+            return ret;
         }
         Stmt::WhileStmt { .. } => {
             return todo!();

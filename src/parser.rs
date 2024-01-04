@@ -196,8 +196,9 @@ impl<'a> Parser<'a> {
         return Stmt::BlockStmt { statements };
     }
 
-    /// Rule for tradition if statement `if condition { statements } else { statements }`.
+    /// Rule for tradition if statement.
     fn if_statement_rule(&mut self) -> Stmt {
+        // handle `if` branch.
         self.advance();
 
         let expr_condition = self.expression_rule();
@@ -221,10 +222,42 @@ impl<'a> Parser<'a> {
         let if_body = Box::new(self.block_statement_rule());
 
         let else_branch;
+        let mut else_if_branches = vec![];
+
+        // Handle optional (multiple) `else if` branches.
+        while !self.is_at_end() && self.current_token().kind == TokenKind::ElseIf {
+            self.advance();
+            let else_if_expr_condition = self.expression_rule();
+
+            if self.current_token().kind != TokenKind::LeftBrace {
+                let err_msg = "Expected \"{\" after block.".to_string();
+                let err = Error::new(
+                    err_msg.clone(),
+                    Some(self.previous().line),
+                    self.previous().column,
+                    None,
+                );
+
+                report_error(&err);
+
+                self.errors.push(err);
+
+            } else {
+                let else_if_then_branch = Box::new(self.block_statement_rule());
+                else_if_branches.push(Box::new(Stmt::IfStmt {
+                    condition: else_if_expr_condition,
+                    then_branch: else_if_then_branch,
+                    else_if_branches: Vec::new(), // Empty vec denotes None.
+                    else_branch: None, // Because this is a else_if for an outer if; It should never include an else (or an else if.)
+                }));
+            }
+        } 
+
+        // Handle optional `else` branch.
         if !self.is_at_end() && self.current_token().kind == TokenKind::Else {
             self.advance(); // Advances from "else" to "{"
 
-            else_branch = Some(Box::new(self.block_statement_rule()))
+            else_branch = Some(Box::new(self.block_statement_rule()));
         } else {
             else_branch = None
         };
@@ -232,6 +265,7 @@ impl<'a> Parser<'a> {
         return Stmt::IfStmt {
             condition: expr_condition,
             then_branch: if_body,
+            else_if_branches,
             else_branch,
         };
     }

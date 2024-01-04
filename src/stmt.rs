@@ -26,6 +26,7 @@ pub enum Stmt {
     IfStmt {
         condition: Box<Expr>,
         then_branch: Box<Stmt>,
+        else_if_branches: Vec<Box<Stmt>>,
         else_branch: Option<Box<Stmt>>,
     },
     WhileStmt {

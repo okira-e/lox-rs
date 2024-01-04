@@ -112,40 +112,31 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
         Stmt::IfStmt {
             condition,
             then_branch,
+            else_if_branches,
             else_branch,
         } => {
-            let bool_condition = evaluate(condition, env)?;
+            let main_if_success = truthy_or_falsey(condition, env)?;
 
-            let mut success = false;
-
-            match bool_condition {
-                Literal::Number(val) => {
-                    if val == 0f64 {
-                        success = false;
-                    } else {
-                        success = true;
-                    }
-                }
-                Literal::String(val) => {
-                    if val == "".to_string() {
-                        success = false;
-                    } else {
-                        success = true;
-                    }
-                }
-                Literal::Boolean(val) => {
-                    success = val;
-                }
-                Literal::Nil => {
-                    success = false;
-                }
-            }
-
-            if success {
-                execute(Box::new(&**then_branch), env)?;
+            // Here we decide if we want to execute the main `if` branch or any of the `else if`s or the `else`.
+            if main_if_success {
+                execute(Box::new(then_branch), env)?;
             } else {
-                if let Some(else_body) = else_branch {
-                    execute(Box::new(*&else_body), env)?;
+                let mut do_else = true;
+                for else_if_statement in else_if_branches.iter() {
+                    if let Stmt::IfStmt { condition: else_if_condition, then_branch: else_if_then_branch, .. } = else_if_statement.as_ref() {
+                        let success = truthy_or_falsey(else_if_condition, env)?;
+                        if success {
+                            execute(Box::new(else_if_then_branch.as_ref()), env)?;
+                            do_else = false;
+                            break;
+                        }
+                    }
+                }
+
+                if do_else {
+                    if let Some(else_body) = else_branch {
+                        execute(Box::new(*&else_body), env)?;
+                    }
                 }
             }
 
@@ -543,6 +534,38 @@ fn add_symbol_to_current_scope(env: &mut Env, name: String, value: Literal) {
     let i = env.len() - 1;
     env[i].insert(name, value);
 }
+
+fn truthy_or_falsey(condition: &Box<Expr>, env: &mut Env) -> Result<bool, Error> {
+    let bool_condition = evaluate(condition, env)?;
+
+    let mut ret = false;
+
+    match bool_condition {
+        Literal::Number(val) => {
+            if val == 0f64 {
+                ret = false;
+            } else {
+                ret = true;
+            }
+        }
+        Literal::String(val) => {
+            if val == "".to_string() {
+                ret = false;
+            } else {
+                ret = true;
+            }
+        }
+        Literal::Boolean(val) => {
+            ret = val;
+        }
+        Literal::Nil => {
+            ret = false;
+        }
+    }
+
+    return Ok(ret);
+}
+
 
 #[cfg(test)]
 mod tests {
