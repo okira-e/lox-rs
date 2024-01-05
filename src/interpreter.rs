@@ -90,24 +90,18 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
             return Ok(());
         }
         Stmt::ClassStmt {
-            methods,
-            name,
-            superclass,
+            ..
         } => {
-            return todo!();
+            todo!()
         }
         Stmt::ExpressionStmt { expression } => {
             return match evaluate(expression, env) {
-                Ok(_) => {
-                    return Ok(());
-                }
-                Err(err) => {
-                    return Err(err);
-                }
+                Ok(_) => Ok(()),
+                Err(err) => Err(err),
             };
         }
-        Stmt::FunctionStmt { name, params, body } => {
-            return todo!();
+        Stmt::FunctionStmt { .. } => {
+            todo!()
         }
         Stmt::IfStmt {
             condition,
@@ -163,11 +157,11 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
                 }
             }
         }
-        Stmt::ReturnStmt { keyword, value } => {
-            return todo!();
+        Stmt::ReturnStmt { .. } => {
+            todo!()
         }
-        Stmt::WhileStmt { condition, body } => {
-            return todo!();
+        Stmt::WhileStmt { .. } => {
+            todo!()
         }
         Stmt::None { err } => {
             return Err(Error {
@@ -442,11 +436,11 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
             };
         }
         Expr::CallExpression {
-            arguments, callee, ..
+            ..
         } => {
             todo!();
         }
-        Expr::GetExpression { object, name } => {
+        Expr::GetExpression { .. } => {
             todo!();
         }
         Expr::GroupingExpression { expression } => {
@@ -459,20 +453,16 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
             };
         }
         Expr::LogicalExpression {
-            right,
-            operator,
-            left,
+            ..
         } => {
             todo!();
         }
         Expr::SetExpression {
-            value,
-            object,
-            name,
+            ..
         } => {
             todo!();
         }
-        Expr::SuperExpression { method, .. } => {
+        Expr::SuperExpression { .. } => {
             todo!();
         }
         Expr::SelfExpression { .. } => {
@@ -505,7 +495,7 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                 _ => todo!("Handle error"),
             };
         }
-        Expr::VarDeclExpression { name } => {
+        Expr::VarDeclExpression { .. } => {
             todo!();
         }
     }
@@ -538,7 +528,7 @@ fn add_symbol_to_current_scope(env: &mut Env, name: String, value: Literal) {
 fn truthy_or_falsey(condition: &Box<Expr>, env: &mut Env) -> Result<bool, Error> {
     let bool_condition = evaluate(condition, env)?;
 
-    let mut ret = false;
+    let ret;
 
     match bool_condition {
         Literal::Number(val) => {

@@ -57,16 +57,16 @@ fn print_stmt(statement: &Stmt) -> String {
             return ret;
         }
         Stmt::WhileStmt { .. } => {
-            return todo!();
+            todo!()
         }
         Stmt::FunctionStmt { .. } => {
-            return todo!();
+            todo!()
         }
         Stmt::ReturnStmt { .. } => {
-            return todo!();
+            todo!()
         }
         Stmt::ClassStmt { .. } => {
-            return todo!();
+            todo!()
         }
         Stmt::None { err } => err.into(),
     };

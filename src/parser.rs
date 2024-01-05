@@ -63,9 +63,9 @@ impl<'a> Parser<'a> {
 
             self.consume_semicolon();
 
-            return ret;
+            ret
         } else {
-            return self.statement_rule();
+            self.statement_rule()
         };
     }
 
