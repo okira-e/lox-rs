@@ -6,41 +6,42 @@ This repository provides an implementation of the Lox programming language in Ru
 
 Lox is a high-level programming language that supports features such as variables, control flow, functions, classes, and more. It's designed to be a straightforward language for learning about language design and crafting an interpreter. This implementation follows the principles outlined in the "Crafting Interpreters" book, which provides detailed insights into creating a Lox interpreter in two main stages: a tree-walking interpreter and a bytecode compiler.
 
-```js
-if (condition) {
-    print "yes";
+```go
+if condition {
+    print("yes");
 } else {
-    print "no";
+    print("no");
 }
 
 var a = 1;
-while (a < 10) {
-    print a;
+for a < 10 {
+    print(a);
     a = a + 1;
 }
 
-for (var a = 1; a < 10; a = a + 1) {
-    print a;
+for var a = 1; a < 10; a = a + 1 {
+    print(a);
 }
 
-fun printSum(a, b) {
-    print a + b;
+func printSum(a, b) {
+    print(a + b);
 }
 
 class Breakfast {
     cook() {
-        print "Eggs a-fryin'!";
+        print("Eggs a-fryin'!");
     }
 
     serve(who) {
-        print "Enjoy your breakfast, " + who + ".";
+        print("Enjoy your breakfast, " + who + ".");
     }
 }
 ```
 ## Current State
 
-The Interpreter currently scans, parses, and evaluates expressions as statements with printing. A working example can 
-be found here: [./lox/dev.lox](./lox/dev.lox)
+Features implemented so far include: variable declaration, variable resolution, printing, and if statements.
+
+A working example can be found here: [./lox/dev.lox](./lox/dev.lox)
 
 ## Getting Started
 
@@ -61,7 +62,3 @@ or you can run the interpreter in REPL mode (interactive mode):
 ```bash
 target/release/lox
 ```
-
-## Language Features
-
-The language is fully documented by its designer at [https://craftinginterpreters.com/the-lox-language.html](https://craftinginterpreters.com/the-lox-language.html).
