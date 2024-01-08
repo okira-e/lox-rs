@@ -482,6 +482,8 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                         hint: None,
                     }),
                 },
+                // FIX: In cases that are not boolean, this should look for either if the expression is 
+                // falsy (either is nil or of default primitive value.)
                 TokenKind::Bang => match interpreted_right {
                     Ok(Literal::Boolean(right)) => Ok(Literal::Boolean(!right)),
                     Err(err) => Err(err),
@@ -847,5 +849,81 @@ mod tests {
                 &Literal::Number(1.into())
             );
         }
+    }
+
+    #[test]
+    fn if_statements() {
+        let stmt = Stmt::IfStmt {
+            condition: Box::new(Expr::LiteralExpression {
+                value: Some(Literal::Boolean(true)),
+            }),
+            then_branch: Box::new(Stmt::ExpressionStmt {
+                expression: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(1.into())),
+                }),
+            }),
+            else_if_branches: vec![],
+            else_branch: None,
+        };
+
+        let mut env = Env::new();
+        env.push(HashMap::new());
+
+        assert!(execute(Box::new(&stmt), &mut env).is_ok());
+
+        let stmt = Stmt::IfStmt {
+            condition: Box::new(Expr::LiteralExpression {
+                value: Some(Literal::Boolean(false)),
+            }),
+            then_branch: Box::new(Stmt::ExpressionStmt {
+                expression: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(1.into())),
+                }),
+            }),
+            else_if_branches: vec![],
+            else_branch: Some(Box::new(Stmt::ExpressionStmt {
+                expression: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(2.into())),
+                }),
+            })),
+        };
+
+        let mut env = Env::new();
+        env.push(HashMap::new());
+
+        assert!(execute(Box::new(&stmt), &mut env).is_ok());
+
+        let stmt = Stmt::IfStmt {
+            condition: Box::new(Expr::LiteralExpression {
+                value: Some(Literal::Boolean(false)),
+            }),
+            then_branch: Box::new(Stmt::ExpressionStmt {
+                expression: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(1.into())),
+                }),
+            }),
+            else_if_branches: vec![Box::new(Stmt::IfStmt {
+                condition: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Boolean(true)),
+                }),
+                then_branch: Box::new(Stmt::ExpressionStmt {
+                    expression: Box::new(Expr::LiteralExpression {
+                        value: Some(Literal::Number(2.into())),
+                    }),
+                }),
+                else_if_branches: vec![],
+                else_branch: None,
+            })],
+            else_branch: Some(Box::new(Stmt::ExpressionStmt {
+                expression: Box::new(Expr::LiteralExpression {
+                    value: Some(Literal::Number(3.into())),
+                }),
+            })),
+        };
+
+        let mut env = Env::new();
+        env.push(HashMap::new());
+
+        assert!(execute(Box::new(&stmt), &mut env).is_ok());
     }
 }
