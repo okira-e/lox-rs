@@ -482,10 +482,31 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                         hint: None,
                     }),
                 },
-                // FIX: In cases that are not boolean, this should look for either if the expression is 
-                // falsy (either is nil or of default primitive value.)
                 TokenKind::Bang => match interpreted_right {
-                    Ok(Literal::Boolean(right)) => Ok(Literal::Boolean(!right)),
+                    Ok(literal) => {
+                        return match literal {
+                            Literal::Boolean(value) => Ok(Literal::Boolean(!value)),
+                            Literal::Number(value) => {
+                                return Ok(
+                                    Literal::Boolean(
+                                        !truthy_or_falsey(
+                                            &Box::new(Expr::LiteralExpression { value: Some(Literal::Number(value)) }), env
+                                        )?
+                                    )
+                                );
+                            }
+                            Literal::String(value) => {
+                                return Ok(
+                                    Literal::Boolean(
+                                        !truthy_or_falsey(
+                                            &Box::new(Expr::LiteralExpression { value: Some(Literal::String(value)) }), env
+                                        )?
+                                    )
+                                );
+                            }
+                            Literal::Nil => Ok(Literal::Boolean(!false)) // Hard coding this because it doesn't matter.
+                        }
+                    }
                     Err(err) => Err(err),
                     _ => Err(Error {
                         msg: format!("Operand of \"{}\" must be a boolean.", &operator.lexeme),
