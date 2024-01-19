@@ -13,6 +13,8 @@ pub fn interpret(statements: &Vec<Stmt>) {
     let mut env = Env::new();
     env.push(HashMap::new());
 
+    add_builtin_variables(&mut env[0]);
+
     for statement in statements {
         let mut do_break = false;
         execute(Box::new(statement), &mut env).unwrap_or_else(|err| {
@@ -24,6 +26,10 @@ pub fn interpret(statements: &Vec<Stmt>) {
             break;
         }
     }
+}
+
+fn add_builtin_variables(env: &mut HashMap<String, Literal>) {
+    env.insert("OS".into(), Literal::String((std::env::consts::OS).to_string()));
 }
 
 /// Executes the given statement.
@@ -525,7 +531,7 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
 }
 
 /// Evaluates the given variable name.
-fn get_symbol_in_scope<'a>(env: &'a Env, name: &String) -> Option<&'a Literal> {
+fn get_symbol_in_scope<'a>(env: &'a Env, name: &'a String) -> Option<&'a Literal> {
     let mut i = if env.len() == 0 { 0 } else { env.len() - 1 };
     while i >= 0 {
         if env[i].contains_key(name) {

@@ -16,3 +16,7 @@ if name {
 } else {
     print nil;
 }
+
+print OS; // Prints the current operating system.
+
+
