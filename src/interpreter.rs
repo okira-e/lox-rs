@@ -115,7 +115,10 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
             else_if_branches,
             else_branch,
         } => {
-            let main_if_success = truthy_or_falsey(condition, env)?;
+            let main_if_success = truthy_or_falsey(
+                &evaluate(&condition, env)?,
+                env
+            )?;
 
             // Here we decide if we want to execute the main `if` branch or any of the `else if`s or the `else`.
             if main_if_success {
@@ -124,7 +127,10 @@ fn execute(stmt: Box<&Stmt>, env: &mut Env) -> Result<(), Error> {
                 let mut do_else = true;
                 for else_if_statement in else_if_branches.iter() {
                     if let Stmt::IfStmt { condition: else_if_condition, then_branch: else_if_then_branch, .. } = else_if_statement.as_ref() {
-                        let success = truthy_or_falsey(else_if_condition, env)?;
+                        let success = truthy_or_falsey(
+                            &evaluate(else_if_condition, env)?,
+                            env
+                        )?;
                         if success {
                             execute(Box::new(else_if_then_branch.as_ref()), env)?;
                             do_else = false;
@@ -459,9 +465,31 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
             };
         }
         Expr::LogicalExpression {
-            ..
+            left,
+            operator,
+            right
         } => {
-            todo!();
+
+            let left_val = evaluate(left, env)?;
+            let right_val = evaluate(right, env)?;
+
+            if operator.kind == TokenKind::Or {
+                if truthy_or_falsey(&left_val, env)? {
+                    return Ok(left_val);
+                } else if truthy_or_falsey(&right_val, env)? {
+                    return Ok(right_val);
+                } else {
+                    return Ok(Literal::Boolean(false));
+                }
+            } else if operator.kind == TokenKind::And {
+                if truthy_or_falsey(&left_val, env)? && truthy_or_falsey(&right_val, env)? {
+                    return Ok(right_val);
+                } else {
+                    return Ok(Literal::Boolean(false));
+                }
+            }
+
+            return Ok(Literal::Nil);
         }
         Expr::SetExpression {
             ..
@@ -496,7 +524,7 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                                 return Ok(
                                     Literal::Boolean(
                                         !truthy_or_falsey(
-                                            &Box::new(Expr::LiteralExpression { value: Some(Literal::Number(value)) }), env
+                                            &evaluate(&Box::new(Expr::LiteralExpression { value: Some(Literal::Number(value)) }), env)?, env
                                         )?
                                     )
                                 );
@@ -505,7 +533,7 @@ fn evaluate(expr: &Expr, env: &mut Env) -> Result<Literal, Error> {
                                 return Ok(
                                     Literal::Boolean(
                                         !truthy_or_falsey(
-                                            &Box::new(Expr::LiteralExpression { value: Some(Literal::String(value)) }), env
+                                            &evaluate(&Box::new(Expr::LiteralExpression { value: Some(Literal::String(value)) }), env)?, env
                                         )?
                                     )
                                 );
@@ -554,28 +582,26 @@ fn add_symbol_to_current_scope(env: &mut Env, name: String, value: Literal) {
     env[i].insert(name, value);
 }
 
-fn truthy_or_falsey(condition: &Box<Expr>, env: &mut Env) -> Result<bool, Error> {
-    let bool_condition = evaluate(condition, env)?;
-
+fn truthy_or_falsey(condition: &Literal, env: &mut Env) -> Result<bool, Error> {
     let ret;
 
-    match bool_condition {
+    match condition {
         Literal::Number(val) => {
-            if val == 0f64 {
+            if *val == 0f64 {
                 ret = false;
             } else {
                 ret = true;
             }
         }
         Literal::String(val) => {
-            if val == "".to_string() {
+            if *val == "".to_string() {
                 ret = false;
             } else {
                 ret = true;
             }
         }
         Literal::Boolean(val) => {
-            ret = val;
+            ret = *val;
         }
         Literal::Nil => {
             ret = false;

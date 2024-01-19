@@ -19,7 +19,9 @@ use crate::token_kinds::TokenKind;
 /// * blockStmt             → "{" declaration* "}" ;
 /// * expressionStmt        → expression ";" ;
 /// * expression            → assignment ;
-/// * assignment            → IDENTIFIER "=" equality ;
+/// * assignment            → IDENTIFIER "=" logical_or ;
+/// * logical_or            → logical_and ("or" logical_and )* ;
+/// * logical_and           → equality ("and" equality )* ;
 /// * equality              → comparison ( ( "!=" | "==" ) comparison )* ;
 /// * comparison            → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 /// * term                  → factor ( ( "-" | "+" ) factor )* ;
@@ -291,7 +293,7 @@ impl<'a> Parser<'a> {
     }
 
     fn assignment_rule(&mut self) -> Box<Expr> {
-        let expr = self.equality_rule();
+        let expr = self.logical_or_rule();
 
         if self.current_token().kind == TokenKind::Equal {
             let var_name = self.previous().clone();
@@ -303,6 +305,36 @@ impl<'a> Parser<'a> {
             return Box::new(Expr::AssignmentExpression {
                 name: var_name,
                 value,
+            });
+        }
+
+        return expr;
+    }
+
+    fn logical_or_rule(&mut self) -> Box<Expr> {
+        let mut expr = self.logical_and_rule();
+
+        if self.current_token().kind == TokenKind::Or {
+            self.advance();
+            expr = Box::new(Expr::LogicalExpression { 
+                left: expr,
+                operator: self.previous().to_owned(),
+                right: self.logical_and_rule(),
+            });
+        }
+
+        return expr;
+    }
+
+    fn logical_and_rule(&mut self) -> Box<Expr> {
+        let mut expr = self.equality_rule();
+
+        if self.current_token().kind == TokenKind::And {
+            self.advance();
+            expr = Box::new(Expr::LogicalExpression { 
+                left: expr,
+                operator: self.previous().to_owned(),
+                right: self.logical_and_rule(),
             });
         }
 
