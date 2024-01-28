@@ -41,7 +41,7 @@ class Breakfast {
 
 Features implemented so far include: variable declaration, variable resolution, printing, and if statements.
 
-A working example can be found here: [./code/dev.lox](./lox/dev.lox)
+A working example can be found here: [./code/dev.lox](./code/dev.lox)
 
 ## Getting Started
 
