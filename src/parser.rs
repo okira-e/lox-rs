@@ -60,7 +60,7 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration_rule(&mut self) -> Stmt {
-        return if self.current_token().kind == TokenKind::Var {
+        return if self.peek().kind == TokenKind::Var {
             let ret = self.var_declaration_rule();
 
             self.consume_semicolon();
@@ -74,7 +74,7 @@ impl<'a> Parser<'a> {
     fn var_declaration_rule(&mut self) -> Stmt {
         self.advance(); // current is variable name.
 
-        if self.current_token().kind != TokenKind::Identifier {
+        if self.peek().kind != TokenKind::Identifier {
             let err = Error::new(
                 "Expected identifier after \"var\".".into(),
                 Some(self.previous().line),
@@ -97,16 +97,16 @@ impl<'a> Parser<'a> {
             };
         }
 
-        let var_name = self.current_token().lexeme.clone();
+        let var_name = self.peek().lexeme.clone();
 
         self.advance(); // current is "=" or ";"
 
         let value;
-        if self.current_token().kind == TokenKind::Equal {
+        if self.peek().kind == TokenKind::Equal {
             self.advance();
 
             value = self.expression_rule();
-        } else if self.current_token().kind == TokenKind::Semicolon {
+        } else if self.peek().kind == TokenKind::Semicolon {
             value = Box::new(Expr::LiteralExpression { value: None });
         } else {
             let err = Error::new(
@@ -145,18 +145,18 @@ impl<'a> Parser<'a> {
 
     /// Parses a statement based on the current token.
     fn statement_rule(&mut self) -> Stmt {
-        if self.current_token().kind == TokenKind::If {
+        if self.peek().kind == TokenKind::If {
             return self.if_statement_rule();
-        } else if self.current_token().kind == TokenKind::Print {
+        } else if self.peek().kind == TokenKind::Print {
             let ret = self.print_statement_rule();
 
             self.consume_semicolon();
 
             return ret;
-        } else if self.current_token().kind == TokenKind::LeftBrace {
+        } else if self.peek().kind == TokenKind::LeftBrace {
             // Block statement.
             return self.block_statement_rule();
-        } else if self.peek().kind == TokenKind::Equal {
+        } else if self.peek_next().kind == TokenKind::Equal {
             // Assignment statement.
             let ret = Stmt::AssignmentStmt {
                 expression: self.assignment_rule(),
@@ -176,11 +176,11 @@ impl<'a> Parser<'a> {
 
         let mut statements = Vec::<Stmt>::new();
 
-        while self.current_token().kind != TokenKind::RightBrace && !self.is_at_end() {
+        while self.peek().kind != TokenKind::RightBrace && !self.is_at_end() {
             statements.push(self.declaration_rule()); // Test this against complete_statement_rule().
         }
 
-        if self.current_token().kind != TokenKind::RightBrace {
+        if self.peek().kind != TokenKind::RightBrace {
             let err = Error::new(
                 "Expected \"}\" after block.".into(),
                 Some(self.previous().line),
@@ -205,7 +205,7 @@ impl<'a> Parser<'a> {
 
         let expr_condition = self.expression_rule();
 
-        if self.current_token().kind != TokenKind::LeftBrace {
+        if self.peek().kind != TokenKind::LeftBrace {
             let err_msg = "Expected \"{\" after block.".to_string();
             let err = Error::new(
                 err_msg.clone(),
@@ -227,11 +227,11 @@ impl<'a> Parser<'a> {
         let mut else_if_branches = vec![];
 
         // Handle optional (multiple) `else if` branches.
-        while !self.is_at_end() && self.current_token().kind == TokenKind::ElseIf {
+        while !self.is_at_end() && self.peek().kind == TokenKind::ElseIf {
             self.advance();
             let else_if_expr_condition = self.expression_rule();
 
-            if self.current_token().kind != TokenKind::LeftBrace {
+            if self.peek().kind != TokenKind::LeftBrace {
                 let err_msg = "Expected \"{\" after block.".to_string();
                 let err = Error::new(
                     err_msg.clone(),
@@ -256,7 +256,7 @@ impl<'a> Parser<'a> {
         } 
 
         // Handle optional `else` branch.
-        if !self.is_at_end() && self.current_token().kind == TokenKind::Else {
+        if !self.is_at_end() && self.peek().kind == TokenKind::Else {
             self.advance(); // Advances from "else" to "{"
 
             else_branch = Some(Box::new(self.block_statement_rule()));
@@ -295,7 +295,7 @@ impl<'a> Parser<'a> {
     fn assignment_rule(&mut self) -> Box<Expr> {
         let expr = self.logical_or_rule();
 
-        if self.current_token().kind == TokenKind::Equal {
+        if self.peek().kind == TokenKind::Equal {
             let var_name = self.previous().clone();
 
             self.advance();
@@ -314,7 +314,7 @@ impl<'a> Parser<'a> {
     fn logical_or_rule(&mut self) -> Box<Expr> {
         let mut expr = self.logical_and_rule();
 
-        if self.current_token().kind == TokenKind::Or {
+        if self.peek().kind == TokenKind::Or {
             self.advance();
             expr = Box::new(Expr::LogicalExpression { 
                 left: expr,
@@ -329,7 +329,7 @@ impl<'a> Parser<'a> {
     fn logical_and_rule(&mut self) -> Box<Expr> {
         let mut expr = self.equality_rule();
 
-        if self.current_token().kind == TokenKind::And {
+        if self.peek().kind == TokenKind::And {
             self.advance();
             expr = Box::new(Expr::LogicalExpression { 
                 left: expr,
@@ -433,33 +433,33 @@ impl<'a> Parser<'a> {
     }
 
     fn primary_rule(&mut self) -> Box<Expr> {
-        return if self.current_token().kind == TokenKind::True {
+        return if self.peek().kind == TokenKind::True {
             self.advance();
 
             Box::new(Expr::LiteralExpression {
                 value: Some(Literal::Boolean(true)),
             })
-        } else if self.current_token().kind == TokenKind::False {
+        } else if self.peek().kind == TokenKind::False {
             self.advance();
 
             Box::new(Expr::LiteralExpression {
                 value: Some(Literal::Boolean(false)),
             })
-        } else if self.current_token().kind == TokenKind::Nil {
+        } else if self.peek().kind == TokenKind::Nil {
             self.advance();
 
             Box::new(Expr::LiteralExpression {
                 value: Some(Literal::Nil),
             })
-        } else if self.current_token().kind == TokenKind::String
-            || self.current_token().kind == TokenKind::Number
+        } else if self.peek().kind == TokenKind::String
+            || self.peek().kind == TokenKind::Number
         {
             self.advance();
 
             Box::new(Expr::LiteralExpression {
                 value: self.previous().literal.clone(),
             })
-        } else if self.current_token().kind == TokenKind::LeftParen {
+        } else if self.peek().kind == TokenKind::LeftParen {
             // We don't capture any of the parentheses tokens. We only group the expression.
 
             self.advance();
@@ -467,11 +467,11 @@ impl<'a> Parser<'a> {
             let expr: Box<Expr> = self.expression_rule();
 
             // Check if the next token is a closing parenthesis.
-            if self.current_token().kind != TokenKind::RightParen {
+            if self.peek().kind != TokenKind::RightParen {
                 let err = Error::new(
                     "Expected \")\" after expression.".into(),
-                    Some(self.current_token().line),
-                    self.current_token().column,
+                    Some(self.peek().line),
+                    self.peek().column,
                     None,
                 );
 
@@ -495,20 +495,20 @@ impl<'a> Parser<'a> {
     /// Runs whenever we encounter a parsing error. It will discard the current statement and jump
     /// to the next one.
     fn synchronise(&mut self) {
-        while self.current_token().kind != TokenKind::Semicolon {
+        while self.peek().kind != TokenKind::Semicolon {
             self.advance();
         }
     }
 
     /// Consumes a semicolon. If there is no semicolon, it will report an error.
     fn consume_semicolon(&mut self) {
-        if self.current_token().kind != TokenKind::Semicolon {
+        if self.peek().kind != TokenKind::Semicolon {
             let err = Error::new(
                 "Expected \";\" after expression.".into(),
                 // BUG: Line is currently incorrectly reported.
                 // Mayhaps we should think of when to advance the token and when to just peek.
                 Some(self.previous().line),
-                self.current_token().column,
+                self.peek().column,
                 None,
             );
 
@@ -534,12 +534,17 @@ impl<'a> Parser<'a> {
         return self.tokens[self.current].kind == TokenKind::Eof;
     }
 
-    /// Get the next token without advancing the current token.
+    // Get the current token without advancing the current token.
     fn peek(&self) -> &Token {
+        return self.current_token();
+    }
+
+    /// Get the next token without advancing the current token.
+    fn peek_next(&self) -> &Token {
         return self.tokens.get(self.current + 1).unwrap_or_else(|| {
             panic!(
                 "Error peeking token. Current token is: {}, and is at index: {}",
-                self.current_token(),
+                self.peek(),
                 self.current - 1
             );
         });
@@ -560,7 +565,7 @@ impl<'a> Parser<'a> {
         return self.tokens.get(self.current - 1).unwrap_or_else(|| {
             panic!(
                 "Error getting previous token. Current token is: {}, and is at index: {}",
-                self.current_token(),
+                self.peek(),
                 self.current - 1
             );
         });
